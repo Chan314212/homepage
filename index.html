@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>陈鸿晖 · 个人主页</title>
+<meta name="description" content="陈鸿晖 —— 物理学出身，半导体方案工程师，数码折腾党。">
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-soft: #161b22;
+  --card: #1a2029;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #7ee0a3;
+  --accent-2: #58a6ff;
+  --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+}
+::selection { background: rgba(126,224,163,.3); }
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+/* ---------- Hero ---------- */
+.hero {
+  min-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -30%; right: -20%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(126,224,163,.12), transparent 60%);
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -30%; left: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(88,166,255,.10), transparent 60%);
+  pointer-events: none;
+}
+.hero h1 {
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.hero .tagline {
+  margin-top: 16px;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  color: var(--accent);
+  font-weight: 500;
+}
+.hero .sub {
+  margin-top: 12px;
+  color: var(--muted);
+  max-width: 520px;
+}
+.hero .meta {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.hero .meta span {
+  font-size: .85rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.scroll-hint {
+  margin-top: 48px;
+  color: var(--muted);
+  font-size: .8rem;
+  animation: float 2.4s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+
+/* ---------- Sections ---------- */
+section { padding: 72px 0; }
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-title::before {
+  content: '';
+  width: 28px; height: 2px;
+  background: var(--accent);
+  display: inline-block;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.card .period { color: var(--muted); font-size: .82rem; }
+.card p { color: var(--text); font-size: .95rem; margin-top: 6px; }
+.card p.muted { color: var(--muted); }
+
+/* ---------- Skills ---------- */
+.skills { display: flex; flex-wrap: wrap; gap: 10px; }
+.skill {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: .9rem;
+  transition: border-color .2s, transform .2s;
+}
+.skill:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+/* ---------- Projects ---------- */
+.project { display: flex; gap: 16px; align-items: flex-start; }
+.project .icon {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(126,224,163,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+
+/* ---------- Interests ---------- */
+.interests { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.interest {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: border-color .2s, transform .2s;
+}
+.interest:hover { border-color: var(--accent-2); transform: translateY(-3px); }
+.interest .emoji { font-size: 1.4rem; }
+.interest h4 { margin: 8px 0 4px; font-size: .98rem; }
+.interest p { color: var(--muted); font-size: .86rem; }
+
+/* ---------- Footer ---------- */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0 56px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .85rem;
+}
+footer a { color: var(--accent-2); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ---------- Reveal animation ---------- */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s, transform .6s; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<div class="hero">
+  <div class="container">
+    <h1>陈鸿晖</h1>
+    <p class="tagline">物理学出身 · 半导体方案工程师 · 数码折腾党</p>
+    <p class="sub">
+      江苏师范大学物理学 2025 届本科毕业生，现居南京，在半导体行业做 FIB 切片方案工程师。
+      白天跟芯片缺陷打交道，晚上折腾黑苹果、刷机、骑行和一切能拆开的东西。
+    </p>
+    <div class="meta">
+      <span>📍 南京</span>
+      <span>🎓 物理学</span>
+      <span>🔬 半导体 · FIB</span>
+      <span>💻 全栈折腾</span>
+    </div>
+    <div class="scroll-hint">↓ 往下看</div>
+  </div>
+</div>
+
+<!-- ================= ABOUT ================= -->
+<section id="about">
+  <div class="container">
+    <h2 class="section-title reveal">关于我</h2>
+    <div class="card reveal">
+      <p>
+        2021 年进入江苏师范大学物理系，2025 年毕业。物理竞赛拿过奖，也折腾着申请了手机光谱仪的专利——
+        算是把"实验室思维"带进了生活。毕业后来到南京，进入半导体行业，
+        现在的工作是把客户的失效分析需求翻译成 FIB 切片方案：沟通、设计、执行、交付。
+      </p>
+      <p class="muted" style="margin-top:10px;">
+        工作之外，我是个重度数码折腾者：Android 从 Magisk 刷到 KernelSU，黑苹果 OpenCore 配过好几台机器，
+        给 AMD 主板解过 BIOS 锁，电脑常年 Windows + Linux 双系统。
+        折腾的乐趣在于把一个东西彻底搞明白。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SKILLS ================= -->
+<section id="skills">
+  <div class="container">
+    <h2 class="section-title reveal">技能</h2>
+    <div class="skills reveal">
+      <span class="skill">Python</span>
+      <span class="skill">Java</span>
+      <span class="skill">Android 开发</span>
+      <span class="skill">FIB 切片方案</span>
+      <span class="skill">失效分析</span>
+      <span class="skill">OpenCore / 黑苹果</span>
+      <span class="skill">Magisk / KernelSU / LSPosed</span>
+      <span class="skill">AMD BIOS 解锁</span>
+      <span class="skill">Linux / 双系统</span>
+      <span class="skill">NAS 自托管</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROJECTS ================= -->
+<section id="projects">
+  <div class="container">
+    <h2 class="section-title reveal">项目与经历</h2>
+    <div class="card project reveal">
+      <div class="icon">🔬</div>
+      <div>
+        <h3>手机光谱仪专利</h3>
+        <span class="period">大学期间</span>
+        <p>申请了手机光谱仪相关专利——把实验室仪器装进手机，物理系的浪漫是让科学触手可及。</p>
+      </div>
+    </div>
+    <div class="card project reveal">
+      <div class="icon">🏆</div>
+      <div>
+        <h3>物理实验竞赛获奖</h3>
+        <span class="period">大学期间</span>
+        <p>物理实验类竞赛获奖，动手能力和实验设计能力的证明。</p>
+      </div>
+    </div>
+    <div class="card project reveal">
+      <div class="icon">🧩</div>
+      <div>
+        <h3>DIY NAS 与自托管</h3>
+        <span class="period">持续进行</span>
+        <p>从零攒了一台低功耗 NAS（i3-8100T + DDR3 魔改主板），上面跑着 AI Agent、下载、媒体服务——
+          喜欢把家变成一个可以自己控制的小数据中心。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INTERESTS ================= -->
+<section id="interests">
+  <div class="container">
+    <h2 class="section-title reveal">兴趣</h2>
+    <div class="interests">
+      <div class="interest reveal">
+        <div class="emoji">🚴</div>
+        <h4>骑行</h4>
+        <p>徐州读书时就有固定路线；最长纪录单日 85 公里，从南京雨花台骑到六合竹镇。</p>
+      </div>
+      <div class="interest reveal">
+        <div class="emoji">🎵</div>
+        <h4>音乐</h4>
+        <p>周杰伦、宋冬野、许嵩、陈奕迅、朴树；国风古风，也听钢琴纯音乐。</p>
+      </div>
+      <div class="interest reveal">
+        <div class="emoji">🎬</div>
+        <h4>电影</h4>
+        <p>最爱《宇宙探索编辑部》——理想主义者的浪漫，是相信外星人也相信眼前的生活。</p>
+      </div>
+      <div class="interest reveal">
+        <div class="emoji">🖥️</div>
+        <h4>折腾</h4>
+        <p>刷机、解锁、拆机、自托管……把每一台设备都调成自己喜欢的样子。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact">
+  <div class="container">
+    <h2 class="section-title reveal">联系我</h2>
+    <div class="card reveal">
+      <p>欢迎交流半导体、数码折腾、骑行路线，或者任何有趣的想法。</p>
+      <p class="muted" style="margin-top:8px;">
+        GitHub：<a href="https://github.com/Chan314212" target="_blank" rel="noopener" style="color:var(--accent-2);">https://github.com/Chan314212</a>
+        <span style="color:var(--border);"> · </span>
+        邮箱：<span id="email">（待补充）</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© <span id="year"></span> 陈鸿晖 · 用物理学的方式理解世界，用工程师的方式改造世界</p>
+    <p style="margin-top:6px;">Powered by <a href="https://pages.edgeone.cloud" target="_blank" rel="noopener">EdgeOne Pages</a></p>
+  </div>
+</footer>
+
+<script>
+// 年份
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// 滚动渐显
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
