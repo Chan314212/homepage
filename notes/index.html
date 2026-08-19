@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>折腾笔记 · 陈鸿晖</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-soft: #161b22; --card: #1a2029;
+  --text: #e6edf3; --muted: #8b949e;
+  --accent: #7ee0a3; --accent-2: #58a6ff; --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.8;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.topbar { padding: 28px 0 8px; }
+.topbar a {
+  color: var(--accent-2); text-decoration: none; font-size: .9rem;
+}
+.topbar a:hover { text-decoration: underline; }
+header {
+  padding: 48px 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: -80%; right: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(126,224,163,.10), transparent 60%);
+  pointer-events: none;
+}
+header h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: .04em; }
+header .meta { color: var(--muted); font-size: .88rem; margin-top: 10px; }
+header .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-size: .78rem; color: var(--muted);
+  border: 1px solid var(--border); padding: 2px 10px; border-radius: 999px;
+}
+article {
+  padding: 32px 0 64px;
+  color: var(--text);
+  font-size: 1rem;
+}
+article h2 { font-size: 1.35rem; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+article h3 { font-size: 1.15rem; margin: 26px 0 10px; }
+article h4 { font-size: 1.02rem; margin: 22px 0 8px; }
+article p { margin: 12px 0; }
+article a { color: var(--accent-2); text-decoration: none; }
+article a:hover { text-decoration: underline; }
+article ul, article ol { margin: 12px 0; padding-left: 26px; }
+article li { margin: 6px 0; }
+article blockquote {
+  margin: 16px 0; padding: 10px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-soft); border-radius: 0 8px 8px 0;
+  color: var(--muted);
+}
+article code {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 5px; font-size: .88em;
+}
+article pre {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 16px 18px; border-radius: 10px; overflow-x: auto;
+  margin: 16px 0;
+}
+article pre code { background: none; border: none; padding: 0; font-size: .86em; line-height: 1.6; }
+article img { max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin: 12px 0; }
+article table { border-collapse: collapse; margin: 16px 0; width: 100%; font-size: .92rem; }
+article th, article td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+article th { background: var(--bg-soft); }
+article hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0 56px; text-align: center;
+  color: var(--muted); font-size: .85rem;
+}
+
+.list-title { padding: 40px 0 8px; font-size: clamp(1.8rem, 5vw, 2.4rem); }
+.list-sub { color: var(--muted); font-size: .92rem; margin: 10px 0 28px; }
+.note-card {
+  display: block; text-decoration: none;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+  transition: border-color .2s, transform .2s;
+}
+.note-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.note-card h3 { color: var(--text); font-size: 1.08rem; }
+.note-card .meta { color: var(--muted); font-size: .82rem; margin-top: 6px; }
+.note-card .summary { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+.note-card .tags { margin-top: 10px; display: flex; gap: 8px; }
+.empty { color: var(--muted); padding: 40px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar"><a href="../index.html">← 返回主页</a></div>
+  <h1 class="list-title">折腾笔记</h1>
+  <p class="list-sub">数码折腾、黑苹果、Linux、NAS 自托管……把搞明白的东西写下来，对抗遗忘。</p>
+  <a class="note-card" href="我的-DIY-NAS-攒机记-从寨板到成品.html">
+  <h3>我的 DIY NAS 攒机记：从寨板到成品</h3>
+  <div class="meta">2026-08-08</div>
+  <div class="summary">一台 i3-8100T + 精粤寨板的低功耗 NAS 是怎么攒起来的，以及为什么折腾本身就是目的。</div>
+  <div class="tags"><span class="tag">NAS</span><span class="tag">折腾</span><span class="tag">硬件</span></div>
+</a>
+</div>
+<footer>
+  <div class="container"><p>© 2026 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p></div>
+</footer>
+</body>
+</html>

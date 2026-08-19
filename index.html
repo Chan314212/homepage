@@ -183,6 +183,20 @@ footer {
 footer a { color: var(--accent-2); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 
+/* ---------- Notes entry ---------- */
+.note-entry { margin-top: 24px; }
+.note-entry a {
+  display: inline-block;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 8px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: .92rem;
+  transition: background .2s, transform .2s;
+}
+.note-entry a:hover { background: rgba(126,224,163,.1); transform: translateY(-2px); }
+
 /* ---------- Reveal animation ---------- */
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s, transform .6s; }
 .reveal.visible { opacity: 1; transform: translateY(0); }
@@ -207,6 +221,9 @@ footer a:hover { text-decoration: underline; }
       <span>🎓 物理学</span>
       <span>🔬 半导体 · FIB</span>
       <span>💻 全栈折腾</span>
+    </div>
+    <div class="note-entry reveal">
+      <a href="notes/">📝 折腾笔记</a>
     </div>
     <div class="scroll-hint">↓ 往下看</div>
   </div>
