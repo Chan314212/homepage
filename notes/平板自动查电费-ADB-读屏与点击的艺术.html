@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平板自动查电费：ADB 读屏与点击的艺术 · 陈鸿晖的折腾笔记</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-soft: #161b22; --card: #1a2029;
+  --text: #e6edf3; --muted: #8b949e;
+  --accent: #7ee0a3; --accent-2: #58a6ff; --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.8;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.topbar { padding: 28px 0 8px; }
+.topbar a {
+  color: var(--accent-2); text-decoration: none; font-size: .9rem;
+}
+.topbar a:hover { text-decoration: underline; }
+header {
+  padding: 48px 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: -80%; right: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(126,224,163,.10), transparent 60%);
+  pointer-events: none;
+}
+header h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: .04em; }
+header .meta { color: var(--muted); font-size: .88rem; margin-top: 10px; }
+header .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-size: .78rem; color: var(--muted);
+  border: 1px solid var(--border); padding: 2px 10px; border-radius: 999px;
+}
+article {
+  padding: 32px 0 64px;
+  color: var(--text);
+  font-size: 1rem;
+}
+article h2 { font-size: 1.35rem; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+article h3 { font-size: 1.15rem; margin: 26px 0 10px; }
+article h4 { font-size: 1.02rem; margin: 22px 0 8px; }
+article p { margin: 12px 0; }
+article a { color: var(--accent-2); text-decoration: none; }
+article a:hover { text-decoration: underline; }
+article ul, article ol { margin: 12px 0; padding-left: 26px; }
+article li { margin: 6px 0; }
+article blockquote {
+  margin: 16px 0; padding: 10px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-soft); border-radius: 0 8px 8px 0;
+  color: var(--muted);
+}
+article code {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 5px; font-size: .88em;
+}
+article pre {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 16px 18px; border-radius: 10px; overflow-x: auto;
+  margin: 16px 0;
+}
+article pre code { background: none; border: none; padding: 0; font-size: .86em; line-height: 1.6; }
+article img { max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin: 12px 0; }
+article table { border-collapse: collapse; margin: 16px 0; width: 100%; font-size: .92rem; }
+article th, article td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+article th { background: var(--bg-soft); }
+article hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0 56px; text-align: center;
+  color: var(--muted); font-size: .85rem;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar"><a href="index.html">← 返回笔记</a></div>
+  <header>
+    <h1>平板自动查电费：ADB 读屏与点击的艺术</h1>
+    <div class="meta">2026-08-21</div>
+    <div class="tags"><span class="tag">自动化</span><span class="tag">ADB</span><span class="tag">Android</span><span class="tag">折腾</span></div>
+  </header>
+  <article>
+<p>家里的 NAS 是我日常的数字管家，有一阵子我想让它帮忙盯电费余额——不是偶尔看一眼，是那种"余额低于阈值就提醒我充值"的自动化。</p>
+<p>最初的想法很朴素：用 ADB 控制平板打开支付宝查电费。有朋友说"用 Auto.js 就行"，确实——但那是在平板本地搭一套自动化引擎，得装 Termux、调脚本、配 cron，是第二档的玩法。当晚先干第一档：<strong>NAS 通过 WiFi ADB 直接遥控平板</strong>，30 分钟内跑通首查，先拿到数据再说。</p>
+<p>这篇文章记录整个流程：原理、代码、以及四个小时里踩过的所有坑。</p>
+<h2>整体方案</h2>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>┌─ NAS ──────────────────────────────┐
+│  Python 脚本 + platform-tools adb    │
+│    └→ 唤醒屏幕 → 开支付宝 → 导航      │
+│         → 读余额 → JSON → 阈值告警    │
+└──────────────┬─────────────────────┘
+               │ WiFi (无线调试, 已配对)
+               ▼
+┌─ 联想平板 TB378FC ─────────────────┐
+│  支付宝已登录、已绑定电费户号          │
+│  KernelSU root（但生产固件无 adb root）│
+└────────────────────────────────────┘
+</code></pre></div>
+
+<p>一句话原理：<strong>脚本是个"盲人操作员"——每步先摸一遍屏幕（读 UI 树），找到目标文字和坐标，再按坐标点一下。</strong></p>
+<h2>第一步：WiFi 调试配对</h2>
+<p>Android 11+ 的"无线调试"用的是<strong>随机端口</strong>，不是老教程里的固定 5555，而且需要先配对。</p>
+<p>坑一：<strong>Debian 自带的 adb 是 29.0.6，不支持 <code>adb pair</code></strong>（Android 11 配对协议要 adb 30+）。下载新版 platform-tools 即可：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>curl<span style="color: #bbbbbb"> </span>-sL<span style="color: #bbbbbb"> </span>-o<span style="color: #bbbbbb"> </span>platform-tools.zip<span style="color: #bbbbbb"> </span>https://dl.google.com/android/repository/platform-tools-latest-linux.zip
+unzip<span style="color: #bbbbbb"> </span>-o<span style="color: #bbbbbb"> </span>-q<span style="color: #bbbbbb"> </span>platform-tools.zip
+<span style="color: #3D7B7B; font-style: italic"># 固化到系统路径, 别放 /tmp (重启会丢)</span>
+cp<span style="color: #bbbbbb"> </span>-r<span style="color: #bbbbbb"> </span>platform-tools/*<span style="color: #bbbbbb"> </span>/usr/local/share/platform-tools/
+ln<span style="color: #bbbbbb"> </span>-sf<span style="color: #bbbbbb"> </span>/usr/local/share/platform-tools/adb<span style="color: #bbbbbb"> </span>/usr/local/bin/adb
+</code></pre></div>
+
+<p>坑二：<strong>配对报 <code>protocol fault (couldn't read status message)</code></strong>。第一次遇到以为是 adb 版本问题，换了三个版本还是报错——最后发现是<strong>配对码过期了</strong>（Android 的配对码有时效），重新生成一次就好。这个报错极有迷惑性。</p>
+<p>坑三：<strong>IP 撞车</strong>。平板上显示的 IP 是 <code>192.168.2.103</code>，但我怎么连都连不上，扫端口发现它其实在 <code>192.168.2.102</code>——因为 Windows 台式机关机了，DHCP 把 102 分给了平板。<strong>DHCP 环境下的设备地址是会变的</strong>，所以脚本里要做设备自动发现（见下文）。</p>
+<p>配对成功的标志：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>adb<span style="color: #bbbbbb"> </span>pair<span style="color: #bbbbbb"> </span><span style="color: #666666">192</span>.168.2.102:44631<span style="color: #bbbbbb"> </span><span style="color: #666666">403627</span>
+<span style="color: #3D7B7B; font-style: italic"># Successfully paired to 192.168.2.102:44631 [guid=...]</span>
+adb<span style="color: #bbbbbb"> </span>connect<span style="color: #bbbbbb"> </span><span style="color: #666666">192</span>.168.2.102:37937
+<span style="color: #3D7B7B; font-style: italic"># connected to 192.168.2.102:37937</span>
+</code></pre></div>
+
+<blockquote>
+<p>注意：配对端口和连接端口是两个！配对弹窗里的 IP:端口是临时的，无线调试主页面的"IP 地址和端口"才是日常连接用的。</p>
+</blockquote>
+<h2>第二步：屏幕唤醒与解锁</h2>
+<p>屏幕灭着的时候发任何点击都是白搭。先点亮、解锁、并<strong>验证状态</strong>：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>input<span style="color: #bbbbbb"> </span>keyevent<span style="color: #bbbbbb"> </span>KEYCODE_WAKEUP<span style="color: #bbbbbb">   </span><span style="color: #3D7B7B; font-style: italic"># 亮屏</span>
+adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>wm<span style="color: #bbbbbb"> </span>dismiss-keyguard<span style="color: #bbbbbb">             </span><span style="color: #3D7B7B; font-style: italic"># 解锁 (无锁屏密码时)</span>
+adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>dumpsys<span style="color: #bbbbbb"> </span>display<span style="color: #bbbbbb"> </span>|<span style="color: #bbbbbb"> </span>grep<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&#39;Display State=&#39;</span>
+<span style="color: #3D7B7B; font-style: italic"># → Display State=ON 才算真的亮了</span>
+</code></pre></div>
+
+<p>坑四：<strong><code>Display State=OFF</code> 时 UI 树照样能 dump</strong>——这很误导人。屏幕灭着，<code>uiautomator dump</code> 依然能抓到 Activity 的控件树，点击也照样注入，看起来"成功"了，其实是在黑屏上盲打。所以<strong>必须显式验证屏幕状态</strong>，别信流程"走通了"。</p>
+<p>坑五：<strong>亮屏 ≠ 解锁</strong>。<code>KEYCODE_WAKEUP</code> 唤起来的是锁屏界面（特征：屏幕中间显示大号时间/日期/电量），这时候启动支付宝也不会到前台。脚本里每次查询前<strong>无条件执行一次点亮 + 解锁</strong>，不区分初始状态。</p>
+<h2>第三步：核心魔法 —— uiautomator dump</h2>
+<p>这是整套方案的心脏：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>uiautomator<span style="color: #bbbbbb"> </span>dump<span style="color: #bbbbbb"> </span>/sdcard/ui.xml
+adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>cat<span style="color: #bbbbbb"> </span>/sdcard/ui.xml
+</code></pre></div>
+
+<p>Android 会把<strong>当前屏幕所有控件</strong>导成 XML，每个控件带 <code>text</code> 和屏幕坐标 <code>bounds</code>：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">&lt;node</span><span style="color: #bbbbbb"> </span><span style="color: #687822">text=</span><span style="color: #BA2121">&quot;查看电费&quot;</span><span style="color: #bbbbbb"> </span><span style="color: #687822">bounds=</span><span style="color: #BA2121">&quot;[330,1612][788,1694]&quot;</span><span style="color: #bbbbbb"> </span><span style="border: 1px solid #FF0000">...</span><span style="color: #008000; font-weight: bold">/&gt;</span>
+<span style="color: #008000; font-weight: bold">&lt;node</span><span style="color: #bbbbbb"> </span><span style="color: #687822">text=</span><span style="color: #BA2121">&quot;余额(元)&quot;</span><span style="color: #bbbbbb"> </span><span style="color: #687822">bounds=</span><span style="color: #BA2121">&quot;[180,1020][382,1054]&quot;</span><span style="color: #bbbbbb"> </span><span style="border: 1px solid #FF0000">...</span><span style="color: #008000; font-weight: bold">/&gt;</span>
+<span style="color: #008000; font-weight: bold">&lt;node</span><span style="color: #bbbbbb"> </span><span style="color: #687822">text=</span><span style="color: #BA2121">&quot;5.54&quot;</span><span style="color: #bbbbbb">     </span><span style="color: #687822">bounds=</span><span style="color: #BA2121">&quot;[1880,1020][2072,1056]&quot;</span><span style="color: #bbbbbb"> </span><span style="border: 1px solid #FF0000">...</span><span style="color: #008000; font-weight: bold">/&gt;</span>
+</code></pre></div>
+
+<p>用正则把 <code>text + 中心坐标</code> 提取成清单，一行代码：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>nodes <span style="color: #666666">=</span> re<span style="color: #666666">.</span>findall(<span style="color: #BA2121">r&#39;text=&quot;([^&quot;]*)&quot;[^&gt;]*bounds=&quot;\[(\d+),(\d+)\]\[(\d+),(\d+)\]&quot;&#39;</span>, xml)
+</code></pre></div>
+
+<p>这就是"眼睛"。<strong>不用 OCR，直接读控件树文本</strong>，所以又快又准。</p>
+<h2>第四步：导航循环 —— 看一步，点一步</h2>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 伪代码: 每步都是 摸屏 → 找目标 → 点击 → 再摸</span>
+<span style="color: #008000; font-weight: bold">while</span> 目标页没到:
+    xml <span style="color: #666666">=</span> dump()
+    nodes <span style="color: #666666">=</span> parse(xml)
+    <span style="color: #008000; font-weight: bold">if</span> 找到<span style="color: #BA2121">&quot;生活缴费&quot;</span>:  tap(它的坐标); <span style="color: #008000; font-weight: bold">continue</span>
+    <span style="color: #666666">...</span>
+</code></pre></div>
+
+<p>这跟人操作完全同构：<strong>你看屏幕找按钮 → 手指点 → 再看下一步</strong>。每步都带重试和超时。</p>
+<p>支付宝爱弹广告，所以每次 dump 完先扫一遍：右上角区域出现"跳过/关闭/x"文案就先点掉，再走主流程。</p>
+<h2>第五步：解析余额</h2>
+<p>在最终页面的 XML 里，按节点顺序找"余额(元)"标签，它后面紧跟的数字节点就是余额：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&quot;余额&quot;</span> <span style="color: #AA22FF; font-weight: bold">in</span> t <span style="color: #AA22FF; font-weight: bold">and</span> <span style="color: #BA2121">&quot;元&quot;</span> <span style="color: #AA22FF; font-weight: bold">in</span> t:
+    取后面第一个纯数字节点 <span style="border: 1px solid #FF0000">→</span> <span style="color: #666666">5.54</span>
+</code></pre></div>
+
+<p>顺手把户号（16 位数字）、截至时间、缴费单位、欠费状态都抓下来。</p>
+<h2>踩坑总表</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>现象</th>
+<th>原因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>adb pair</code> 未知命令</td>
+<td>Debian adb 29 太老</td>
+<td>装 platform-tools 37+</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>protocol fault</code></td>
+<td>配对码过期 / IP 看错</td>
+<td>重新生成配对码</td>
+</tr>
+<tr>
+<td>3</td>
+<td>IP 连不上</td>
+<td>DHCP 地址变了/与 Windows 撞车</td>
+<td>脚本自动发现设备</td>
+</tr>
+<tr>
+<td>4</td>
+<td>操作"成功"但结果不对</td>
+<td>屏幕实际是 OFF，在黑屏盲打</td>
+<td>显式验证 Display State</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>KEYCODE_SLEEP</code> 不生效</td>
+<td>联想 ZUI ROM 不认</td>
+<td>换 <code>KEYCODE_POWER</code> 切换</td>
+</tr>
+<tr>
+<td>6</td>
+<td>页面识别失败</td>
+<td>账单页标题是"缴费账单"非"生活缴费"</td>
+<td>放宽识别词（认"我的户号/查看电费"）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>查询中途屏幕灭了</td>
+<td>休眠超时 120 秒，查询要 30 秒</td>
+<td>查询期间强制常亮，查完恢复原值</td>
+</tr>
+</tbody>
+</table>
+<h2>最终脚本</h2>
+<p><code>/vol1/1000/claw/电费查询/query_electricity.py</code>，无人值守，约 200 行 Python：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>python3<span style="color: #bbbbbb"> </span>query_electricity.py<span style="color: #bbbbbb">                  </span><span style="color: #3D7B7B; font-style: italic"># 查询, 输出 JSON</span>
+python3<span style="color: #bbbbbb"> </span>query_electricity.py<span style="color: #bbbbbb"> </span>--threshold<span style="color: #bbbbbb"> </span><span style="color: #666666">20</span><span style="color: #bbbbbb">   </span><span style="color: #3D7B7B; font-style: italic"># 余额&lt;20 时 exit code=2 (可接告警)</span>
+</code></pre></div>
+
+<p>关键特性：</p>
+<ul>
+<li><strong>零 token、零人工</strong>：纯 ADB 模拟点击</li>
+<li><strong>状态自恢复</strong>：息屏唤醒 → 查完自动息屏；本来亮着 → 不动；休眠超时用完还原</li>
+<li><strong>设备自动发现</strong>：已连接地址优先，断了走 mDNS 兜底</li>
+<li><strong>弹窗防御</strong>：广告自动跳过</li>
+</ul>
+<p>实测输出：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>{
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;balance&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;5.54&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;as_of&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;2026-08-21 07:30:43&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;account&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;3200155724358&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;company&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;南京供电公司&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;debt&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;无欠费&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;ok&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #008000; font-weight: bold">true</span>
+}
+</code></pre></div>
+
+<h2>这套模式的通用性</h2>
+<p><strong><code>dump</code> 是眼睛，<code>tap</code> 是手指，正则是指挥官。</strong> 这套套路不只能查电费——任何能通过 UI 完成的 App 操作（查话费、签到打卡、抓首页标题、抢券）都能照葫芦画瓢。那天顺手用同一套流程打开 B 站抓了首页四个视频标题，全程 15 秒。</p>
+<p>至于朋友提的 Auto.js（AutoX.js）方案，原理完全一样，只是把"眼睛和手指"搬到了平板本地——NAS 断了也能自己跑。那是第二档的玩法，等哪天想再折腾一档再说。</p>
+<p><strong>折腾的乐趣，在于把一个东西彻底搞明白。</strong></p>
+  </article>
+</div>
+<footer>
+  <div class="container"><p>© 2026 陈鸿晖 · <a href="index.html" style="color:var(--accent-2);text-decoration:none;">折腾笔记</a></p></div>
+</footer>
+</body>
+</html>
