@@ -206,11 +206,18 @@ footer a:hover { text-decoration: underline; }
 .note-entry a:hover { background: rgba(126,224,163,.1); transform: translateY(-2px); }
 
 @media (max-width: 600px) {
+  .note-entry {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    justify-content: center;
+    align-items: start;
+    column-gap: 10px;
+    row-gap: 10px;
+  }
   .note-entry a { text-align: center; }
   .note-entry a:last-child {
-    flex-basis: auto;
-    margin-left: 0;
-    margin-right: auto;
+    grid-column: 1;
+    margin: 0;
   }
 }
 
