@@ -1,62 +1,77 @@
 ---
-title: AI Agent 调用手机端侧能力的方案探索（实践篇）
+title: AI Agent 调用手机端侧能力：从平板到主力机
 date: 2026-08-31
 tags: [自动化, ADB, Android, Tailscale, 折腾]
-summary: 之前用 WiFi ADB 遥控的是平板，这次把一台非 root 的荣耀主力机也接进来——靠 Tailscale 跨网固定连接，让服务器上的 AI 能隔空定闹钟、查快递、查电费。从理论走到实践，还顺手推翻了理论篇里"Shizuku 让 adb 重启自保持"的说法。
+summary: 把原本只能遥控平板的 ADB 方案搬到非 root 的荣耀主力机上：用 Tailscale 跨网连接，实测完成定闹钟、查快递和查电费，也修正了理论篇里关于 Shizuku 的错误判断。
 ---
 
-家里那台 NAS 上的 AI（我这套数字管家）之前已经能遥控**平板**——WiFi ADB、读屏点击、自动查电费。但平板有个尴尬：它是"副机"，平时不随身带，很多要手机本地干的事它顶不上。
+之前，NAS 上的 AI 已经能通过 WiFi ADB 遥控一台平板：读屏、点击、查电费都没问题。但平板不是随身设备，很多真正有用的事情还是发生在手机上。
 
-最近我把它升级了：**让 AI 直接遥控我天天揣兜里的主力机**。这台荣耀是非 root 的，不能像平板那样开 root 玩深层权限——但它有一条更稳的远程通道：**Tailscale**。这篇文章记录从「理论」到「真机跑通」的整个过程，包括一个让我有点意外的发现，和一个**对理论篇的重要推倒**。
+于是我把这条链路搬到了每天带在身上的荣耀主力机。它没有 root，不能照搬平板上的权限玩法，但可以利用 **Tailscale + ADB** 建立一条跨网通道。最终跑通了三个场景：隔空定闹钟、查看淘宝待收货，以及在手机上查电费。
 
-## 一、为什么非 root 主力机也能被遥控
+这篇记录的是从“理论上可行”到“真机真的能跑”的过程，也包括一个需要回头修改理论篇的结论。
 
-主力机没法 root，很多教程上的"骚操作"用不了。但遥控手机这件事，**90% 的日常操作走 ADB 就够了**，不需要 root。关键卡点其实是**怎么稳定连上**：
+## 为什么非 root 也够用
 
-- 手机"无线调试"用的是**随机端口**，还要求连 WiFi（国产 ROM 没连 WiFi 时这开关直接置灰）。
-- 手机 IP 是 DHCP 租的，会漂移，甚至跟家里 Windows 台式机撞车。
+日常自动化里，很多事情并不需要 root：启动 App、读取 UI 树、模拟点击、读取电量和前台窗口，ADB 的 shell 权限已经够用。
 
-两个都不稳，AI 想"随手"连上就难。**Tailscale 恰好解决这两个**：它在手机和服务器之间拉一条虚拟局域网，手机拿到固定的 `100.x` 虚拟 IP，端口我们能自己固定成 5555，且**不依赖 WiFi**（用流量也能连）。
+真正的难点是连接稳定性：
 
+- 无线调试的端口可能是随机的；
+- 手机的局域网地址会随 DHCP 变化；
+- 国产 ROM 往往要求设备连接 WiFi 才能打开无线调试；
+- 手机重启后，临时的 TCP ADB 状态可能消失。
+
+Tailscale 解决的是网络位置问题。手机和 NAS 都加入同一个虚拟网络后，手机会获得固定的 `100.x` 地址，即使手机改用流量，也不必依赖家里的局域网地址。
+
+```text
+NAS / Hermes Agent
+       │ adb + 自动重连
+       │ Tailscale 虚拟网络
+       ▼
+荣耀主力机（非 root）
+       ├─ 系统闹钟
+       ├─ 淘宝界面
+       └─ 支付宝生活缴费
 ```
-┌─ 服务器/NAS ────────────────┐
-│  Hermes Agent + adb          │
-│    └→ 跨通道连接 + 自动重连     │
-└──────────────┬───────────────┘
-               │ Tailscale 虚拟局域网
-               ▼
-┌─ 荣耀主力机 (非root) ────────┐
-│  固定 IP + 固定端口 5555       │
-│  支付宝/淘宝已登录              │
-└──────────────────────────────┘
-```
 
-## 二、打通跨网 ADB：固定 IP + 固定端口 + 自动重连
+## 连接方案：固定端口优先，随机端口兜底
 
-**第一步**，让 adbd 监听固定端口：
+第一次用 USB 连接手机后，可以让 adbd 暂时监听 5555：
 
 ```bash
-adb tcpip 5555        # 或 setprop service.adb.tcp.port 5555
+adb tcpip 5555
+adb connect <手机 Tailscale IP>:5555
 ```
 
-这里有个必须记住的**坑**：`service.adb.tcp.port` 不带 `persist` 前缀，**手机重启后 adbd 会回 USB 模式，5555 消失**。所以光"固定端口"不够，还得有重连兜底。
+但这里的“固定”只是当前开机周期内有效：
 
-**第二步**，host 端做一个"自动发现端口再连"的脚本。因为手机重启后，虽然 5555 没了，但"无线调试"开关和 RSA 授权都保留——**只是端口会变**。脚本先试固定 5555，不通就去扫无线调试的随机端口段，连上为止：
+```bash
+service.adb.tcp.port
+```
+
+不带 `persist` 前缀，手机重启后通常会回到 USB 模式。因此 host 端脚本不能只认 5555，而应当：
+
+1. 先尝试 `Tailscale IP:5555`；
+2. 失败后扫描无线调试可能使用的随机端口；
+3. 对每个候选端口执行 `adb connect`；
+4. 只有返回 `device`，而不是 `offline`，才算连接成功。
+
+伪逻辑如下：
 
 ```python
-# 伪逻辑：先试5555 → 不通则并发扫 37000-40400 随机端口 → connect 并验证 device
-for p in [5555] + range(37000, 40400, 2):
-    if port_open(p) and adb_connect(f"<手机TS-IP>:{p}") == "device":
-        return p
+for port in [5555] + candidate_ports:
+    if port_open(phone_ip, port):
+        if adb_connect(f"{phone_ip}:{port}") == "device":
+            return port
+raise ConnectionError("phone ADB unavailable")
 ```
 
-实测：`adb connect <手机TS-IP>:5555` 返回 `device`，读电量 42%、抓到前台是 QQ——**不是假连，命令真能跑**。这条链路活了，AI 就能像碰平板一样碰主力机。
+实测连接成功后，可以读到电量、前台窗口并正常执行 UI 操作。这说明链路不是“端口看起来开着”，而是命令确实已经到达手机。
 
-## 三、实战①：隔空定闹钟（有个小惊喜）
+## 场景一：隔空创建一次性闹钟
 
-定闹钟最直接的方案是系统广播 `ACTION_SET_ALARM`。但荣耀的时钟包名不是通用的 `com.android.deskclock`，而是 **`com.hihonor.deskclock`**。真正执行的是它的 `com.android.alarmclock.MiddleActivity`。
-
-我用标准契约带 `SKIP_UI` 参数试了一下：
+荣耀时钟的包名不是常见的 `com.android.deskclock`，而是 `com.hihonor.deskclock`。通过标准的 `ACTION_SET_ALARM` 广播可以调用系统设置闹钟：
 
 ```bash
 adb shell am start -a android.intent.action.SET_ALARM \
@@ -66,33 +81,53 @@ adb shell am start -a android.intent.action.SET_ALARM \
   --ez android.intent.extra.alarm.SKIP_UI true
 ```
 
-**惊喜来了**：荣耀 MagicOS 对 `SKIP_UI=true` 直接**静默创建了闹钟**——不需要我在手机上点任何确认，也不设成"每天"（只响一次）。打开时钟 App 一看，列表里稳稳躺着「8 分钟后响铃」。
+荣耀 MagicOS 对 `SKIP_UI=true` 的处理比我预想得更彻底：它直接创建了一次性闹钟，不需要再手动点确认。
 
-这其实**推翻了理论篇的一个说法**：我之前在理论笔记里写，`ACTION_SET_ALARM` 只能"预填时间 + 用户手动点确认"。但配上荣耀的 `SKIP_UI`，同一契约能达到**完全无人干预**。不同 ROM 行为不一样，碰到什么是什么。
+这也推翻了理论篇里原先的绝对表述。之前我以为 `ACTION_SET_ALARM` 只能预填时间、等待用户确认；现在看来，**同一个系统契约在不同 ROM 上可能有不同结果**。写 Android 自动化时，标准文档是起点，真机行为才是结论。
 
-## 四、实战②：隔空看淘宝还有几个快递
+## 场景二：查看淘宝待收货
 
-这个最"生活"。让 AI 打开淘宝看还剩几个包裹：
-
-```bash
-adb shell monkey -p com.taobao.taobao -c android.intent.category.LAUNCHER 1   # 启动（别猜死Activity，用launcher入口最稳）
-adb shell uiautomator dump /sdcard/ui.xml                                     # 摸屏
-# 解析底部Tab → 点「我的淘宝」 → 找 content-desc="待收货 2"
-```
-
-一个**小坑**：淘宝"我的淘宝"页的待收货数量藏在 `content-desc` 里（不是 `text`），解析时两个都要抓。读出来是「**待收货 2**」——点进快递页，一个是韵达（自喷漆）已揽收在途，一个是极兔（酒精湿巾）还在等揽收。**2 个包裹，一个在路上，一个今晚才发货**。
-
-## 五、实战③：主力机版查电费脚本
-
-把之前平板那套查电费，移植到主力机。脚本在 `/vol1/1000/claw/电费查询/query_electricity_phone.py`：
+启动淘宝时，我没有猜具体 Activity，而是使用 Launcher 入口：
 
 ```bash
-python3 query_electricity_phone.py                 # 查询并打印
-python3 query_electricity_phone.py --threshold 20  # 余额<20 exit=2 告警
-python3 query_electricity_phone.py --out x.json    # 另存 JSON
+adb shell monkey -p com.taobao.taobao \
+  -c android.intent.category.LAUNCHER 1
 ```
 
-实测输出（户号已打码）：
+进入“我的淘宝”后，再导出 UI 树并读取待收货数量。这里遇到一个小坑：数量显示在 `content-desc`，不在 `text`。解析器如果只看 `text`，会得到一个没有数字的页面。
+
+因此读取 UI 时，至少要同时检查：
+
+- `text`：可见文字；
+- `content-desc`：无障碍描述和部分动态数量。
+
+## 场景三：把电费查询搬到主力机
+
+之前平板上的查电费脚本已经能跑，这次只是把设备连接和部分页面特征迁移到手机端：
+
+```bash
+python3 query_electricity_phone.py
+python3 query_electricity_phone.py --threshold 20
+python3 query_electricity_phone.py --out result.json
+```
+
+支付宝“生活缴费”页使用懒加载。刚进入页面时，`uiautomator dump` 可能只有标题和图标，“查看电费”“余额”等内容要过几秒才出现。脚本不能只查一次，而要轮询等待：
+
+```python
+def goto_life_fee(max_try=8):
+    for _ in range(max_try):
+        nodes = dump_and_parse()
+        if contains_fee_content(nodes):
+            return True
+        if is_alipay_home(nodes):
+            tap_life_fee_entry(nodes)
+        sleep(2)
+    return False
+```
+
+判断“是否在首页”也很重要。不能只看到“生活缴费”四个字就点击，否则进入生活缴费页后，脚本可能把页面标题误认为入口，反复点错位置。
+
+示例输出中的账户信息已脱敏：
 
 ```json
 {
@@ -100,50 +135,34 @@ python3 query_electricity_phone.py --out x.json    # 另存 JSON
   "account": "****",
   "company": "南京供电公司",
   "debt": "无欠费",
-  "as_of": "2026-08-31 07:30:44",
   "ok": true
 }
 ```
 
-**又是一个坑**：支付宝"生活缴费"页是**懒加载**——`uiautomator dump` 第一屏常常只抓到页面标题和几个图标，"查看电费 / 余额"这些条目要 **等 2-4 秒**才渲染出来。如果脚本一上来就找"查看电费"，直接扑空。
+## 关于 Shizuku：实测推翻原结论
 
-解法是**轮询等待**，并且用"首页特征"（有搜索/扫一扫）区分"首页 vs 生活缴费页标题"，避免把生活缴费页顶部标题误当入口去点：
+理论篇曾经写过：非 root 手机可以用 Shizuku 写入 `persist.service.adb.tcp.port`，让 5555 在重启后继续保持。这个判断后来被实机验证推翻：
 
-```python
-def goto_life_fee(max_try=8):
-    for i in range(max_try):
-        dump()
-        if 命中("查看电费" or "余额(元)" or "缴费账单"): return True   # 已到位
-        if is_home_page(texts):   # 首页才找入口
-            tap("生活缴费", 只选 y>500 的入口卡片)
-        time.sleep(2)             # 生活缴费页仍在懒加载 → 等重试
-    return False
-```
+1. shell 用户写入 `persist.*` 属性会失败；
+2. Shizuku 的权限上限仍然是 adb/shell 级，不等于 root；
+3. 官方 issue 也说明，Shizuku 本身不能凭空让一个持久 ADB 端口在重启后自动出现。
 
-## 六、对理论篇的一个重要推倒：Shizuku 并不能让 adb 重启自保持
+如果追求开机后自动恢复，可以研究 Automate、Tasker 等手机端自动化工具；但这意味着额外安装和配置。当前我采用更简单的方案：让 NAS 端自动发现端口并重连。它不够优雅，却少了两层依赖。
 
-这一条最想记下来。我之前的理论笔记里写：非 root 手机可以用 **Shizuku** 写入 `persist.service.adb.tcp.port`，让重启后 5555 仍开启。**实测证明这是错的**：
+## 踩坑总表
 
-1. 非 root 手机 `adb shell setprop persist.service.adb.tcp.port 5555` → 直接报 `Failed to set property`（SELinux 拒绝 shell 用户写 `persist.*` 属性）。
-2. **Shizuku 的权限上限就是 adb 授权（shell 级）**，不是 root——它同样写不进 `persist.*`。
-3. Shizuku 官方 issue #2044 也明确：Shizuku **不能主动利用一个持久端口**，得靠外部机制来跑 `adb tcpip` + 启动它。
+| 现象 | 原因 | 解法 |
+|---|---|---|
+| `persist...` 写入失败 | shell 无权修改持久属性 | 不依赖 Shizuku 固定端口，改 host 自动重连 |
+| `adb tcpip` 重启失效 | 临时 TCP 状态不会持久保存 | 接受重启后重连或扫描随机端口 |
+| 淘宝 `Error type 3` | Activity 路径会变 | 使用 Launcher 入口 |
+| 待收货数量读不到 | 数字在 `content-desc` | 同时解析 `text` 和 `content-desc` |
+| 生活缴费入口找不到 | 页面懒加载 | 轮询等待，并区分首页与目标页 |
 
-**结论**：单装一个 Shizuku，**不会**自动让 adb 重启后保持在线。真要"重启后 5555 自动固定"，得靠 **Automate / Tasker** 这类开机自启 flow（激活无线调试 + 切 TCP 5555 + 启动 Shizuku），要装 2 个 App + 手机端配 flow。
+## 这次实践说明了什么
 
-**更务实的替代**：不追求 adbd 侧固定 + 重启自动，改用 **host 端自动发现端口重连**（方案二），零安装、零权限依赖，已经跑通。省事，还不用碰 App 权限。
+从平板到主力机，真正新增的不是某条神奇命令，而是一条更可靠的连接策略：Tailscale 负责让设备“找得到”，ADB 负责让命令“发得进去”，UI 树负责让脚本“看得懂”。
 
-## 踩坑总表（主力机跨网 ADB）
+它仍然不是一个适合所有人的产品化方案。重启、锁屏、网络和 App 改版都可能让自动化失效。但对自己的设备、自己的日常流程来说，先用 ADB 跑通，再把稳定需求抽成正式工具，往往比一开始就设计完整系统更快。
 
-| # | 现象 | 原因 | 解法 |
-|---|------|------|------|
-| 1 | `setprop persist...` 报 Failed | 非 root shell 写不进 persist 属性 | Shizuku 也不行；改 host 端自动重连 |
-| 2 | `adb tcpip` 重启失效 | `service.adb.tcp.port` 无 persist 前缀 | 接受；配 host 自动发现端口 |
-| 3 | 淘宝启动报 `Error type 3` | Activity 路径随版本变 | 用 `monkey -c LAUNCHER` 取入口 |
-| 4 | "待收货"数抓不到 | 藏在 `content-desc` 非 `text` | 解析时同时抓 content-desc |
-| 5 | 生活缴费页无"查看电费" | 页面懒加载 | 轮询等待 + is_home_page 区分 |
-
-## 结尾
-
-从「AI 只能跟你打字聊天」到「AI 能替你定闹钟、查快递、查电费」，中间隔的其实就是一条**稳定的远程通道**。平板走 WiFi ADB 是局域网玩法，主力机加 Tailscale 才真正让 AI 变成了能"碰物理世界"的手脚——而且不用 root，不用装一堆 App。
-
-那篇理论笔记里我说"后续实践结果将另文记录"，现在实践来了，还顺手把理论里那个 Shizuku 的说法纠了个错。**折腾的意义，就在于把一个东西从"我以为"变成"我验证过"。**
+折腾的意义，不是证明理论永远正确，而是愿意在真机面前承认它错了，然后把方案改到真的能用。

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 调用手机端侧能力的方案探索 · 陈鸿晖的折腾笔记</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-soft: #161b22; --card: #1a2029;
+  --text: #e6edf3; --muted: #8b949e;
+  --accent: #7ee0a3; --accent-2: #58a6ff; --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.8;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.topbar { padding: 28px 0 8px; }
+.topbar a {
+  color: var(--accent-2); text-decoration: none; font-size: .9rem;
+}
+.topbar a:hover { text-decoration: underline; }
+header {
+  padding: 48px 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: -80%; right: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(126,224,163,.10), transparent 60%);
+  pointer-events: none;
+}
+header h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: .04em; }
+header .meta { color: var(--muted); font-size: .88rem; margin-top: 10px; }
+header .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-size: .78rem; color: var(--muted);
+  border: 1px solid var(--border); padding: 2px 10px; border-radius: 999px;
+}
+article {
+  padding: 32px 0 64px;
+  color: var(--text);
+  font-size: 1rem;
+}
+article h2 { font-size: 1.35rem; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+article h3 { font-size: 1.15rem; margin: 26px 0 10px; }
+article h4 { font-size: 1.02rem; margin: 22px 0 8px; }
+article p { margin: 12px 0; }
+article a { color: var(--accent-2); text-decoration: none; }
+article a:hover { text-decoration: underline; }
+article ul, article ol { margin: 12px 0; padding-left: 26px; }
+article li { margin: 6px 0; }
+article blockquote {
+  margin: 16px 0; padding: 10px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-soft); border-radius: 0 8px 8px 0;
+  color: var(--muted);
+}
+article code {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 5px; font-size: .88em;
+}
+article pre {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 16px 18px; border-radius: 10px; overflow-x: auto;
+  margin: 16px 0;
+}
+article pre code { background: none; border: none; padding: 0; font-size: .86em; line-height: 1.6; }
+article img { max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin: 12px 0; }
+article table { border-collapse: collapse; margin: 16px 0; width: 100%; font-size: .92rem; }
+article th, article td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+article th { background: var(--bg-soft); }
+article hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0 56px; text-align: center;
+  color: var(--muted); font-size: .85rem;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar"><a href="index.html">← 返回笔记</a></div>
+  <header>
+    <h1>AI Agent 调用手机端侧能力的方案探索</h1>
+    <div class="meta">2026-08-30</div>
+    <div class="tags"><span class="tag">自动化</span><span class="tag">AI</span><span class="tag">Agent</span><span class="tag">Android</span><span class="tag">折腾</span></div>
+  </header>
+  <article>
+<blockquote>
+<p>这篇文章最初是一份实践前的理论整理。后续真机验证已经完成，部分结论发生了变化，尤其是“Shizuku 能让非 root 手机的 ADB 端口重启后保持开启”这一点，实测不成立。相关修正见文末和实践篇。</p>
+</blockquote>
+<h2>问题从哪里来</h2>
+<p>我希望让运行在 NAS 上的 AI Agent 调用手机上的一些能力，例如设置闹钟、查看 App 内容、读取通知，甚至完成一些日常操作。</p>
+<p>直接调用手机厂商的端侧 AI 看起来最自然，但小爱、Siri、小艺等系统通常不会把完整的调用接口开放给第三方。于是问题变成：<strong>跳过端侧 AI，让 Agent 直接接触手机的系统能力。</strong></p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>NAS 上的 Agent
+      │  自定义工具 / MCP / HTTP / ADB
+      ▼
+手机桥接层
+      │
+      ▼
+Android 系统能力：闹钟、日历、通知、App 界面
+</code></pre></div>
+
+<p>Agent 负责理解“我要做什么”，手机侧负责执行“系统允许做什么”。中间的桥接层决定了权限、稳定性和开发成本。</p>
+<h2>三条路线</h2>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>手机端要求</th>
+<th>优点</th>
+<th>局限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原生 HTTP/MCP 桥接</td>
+<td>自建 Android App，前台服务</td>
+<td>接口清晰，权限可控，适合长期运行</td>
+<td>需要开发、安装和维护</td>
+</tr>
+<tr>
+<td>ADB + Tailscale</td>
+<td>开启调试并保持 adbd 可连接</td>
+<td>灵活，能读 UI、模拟点击，验证速度快</td>
+<td>权限边界、网络和重启状态都要自己处理</td>
+</tr>
+<tr>
+<td>Termux 轻量桥接</td>
+<td>安装 Termux，运行脚本</td>
+<td>Python 即可验证，不必写原生 App</td>
+<td>shell 权限有限，长期保活和系统能力不足</td>
+</tr>
+</tbody>
+</table>
+<p>我的实际选择是：<strong>先用 ADB 验证需求，再决定哪些能力值得做成正式桥接服务。</strong> 如果连需求本身都没有跑通，直接写 App 很容易变成开发一个没人用的接口。</p>
+<h2>路线一：原生 HTTP/MCP 桥接</h2>
+<p>Android App 可以用 Kotlin 配合 Ktor 或 NanoHTTPD 提供本地 HTTP 服务，再把接口注册到 Agent 或 MCP 客户端。</p>
+<p>比较适合做成接口的能力包括：</p>
+<ul>
+<li><code>POST /alarm</code>：创建一次性提醒或应用内闹钟；</li>
+<li><code>POST /calendar</code>：写入系统日历；</li>
+<li><code>/notification</code>：发送本地通知；</li>
+<li>音量、亮度、媒体控制等明确的系统操作。</li>
+</ul>
+<p>后台运行通常需要前台服务和常驻通知。精确闹钟、日历写入、通知使用权等权限也要在首次使用时明确申请。</p>
+<p>这里要分清“应用内闹钟”和“系统时钟里的闹钟”：<code>AlarmManager</code> 可以让自己的 App 在指定时间收到广播，但未必会出现在系统时钟 App 的列表里。若使用 <code>ACTION_SET_ALARM</code>，系统可能只负责预填页面，仍需要用户确认。不同厂商 ROM 的行为不能一概而论，必须真机验证。</p>
+<p>安全上，服务只应监听必要的网卡和端口，并加 Token 认证；不要因为家里有 NAS，就把一个能控制手机的 HTTP 接口直接暴露到公网。</p>
+<h2>路线二：ADB + Tailscale</h2>
+<p>ADB 适合验证和探索，因为它不要求先开发一套 App。通过 Tailscale，可以让 NAS 和手机处在同一条虚拟网络里，手机即使换了 WiFi 或使用移动数据，也能通过固定的 <code>100.x</code> 地址被找到。</p>
+<p>基本过程是：</p>
+<ol>
+<li>USB 连接手机，开启 USB 调试；</li>
+<li>执行 <code>adb tcpip 5555</code>，让 adbd 暂时监听 TCP 端口；</li>
+<li>手机和 NAS 登录同一个 Tailscale 网络；</li>
+<li>在 NAS 上执行 <code>adb connect &lt;手机 Tailscale IP&gt;:5555</code>；</li>
+<li>首次连接时在手机上确认 RSA 授权。</li>
+</ol>
+<p>它的强项不只是执行 shell 命令，还包括读取 UI 树、模拟点击、启动 App 和抓取页面内容。平板自动查电费、主力机查快递，都是沿着这条路线做出来的。</p>
+<h3>实践后必须修正的一点</h3>
+<p>理论整理时，我曾经认为非 root 手机可以借助 Shizuku 写入 <code>persist.service.adb.tcp.port</code>，让端口重启后保持开启。真机测试证明这条路不成立：</p>
+<ul>
+<li>shell 用户不能直接写入 <code>persist.*</code> 属性；</li>
+<li>Shizuku 提供的是 adb/shell 级能力，不等于 root；</li>
+<li>手机重启后，<code>adb tcpip 5555</code> 的状态会丢失。</li>
+</ul>
+<p>因此，当前更可靠的办法是：接受端口可能变化，在 NAS 侧自动发现无线调试端口并重连。这样不用额外安装 Tasker、Automate 或其他保活工具，虽然不如永久端口漂亮，但实际更省事。</p>
+<h2>路线三：Termux</h2>
+<p>不想写 Kotlin 时，可以在 Termux 里用 Python 起一个 HTTP 服务或 MCP Server。它适合快速验证：本地通知、简单回调、脚本执行都能先做起来。</p>
+<p>但 Termux 仍然是 shell 用户，不能自然地获得系统时钟、日历、通知读取和无障碍等深层权限。它更像实验台，不一定适合承担长期运行的核心能力。</p>
+<h2>怎么选</h2>
+<p>可以用三个问题做判断：</p>
+<ol>
+<li><strong>只是想验证一个想法？</strong> 先用 ADB。</li>
+<li><strong>功能固定、需要长期稳定运行？</strong> 写原生桥接 App。</li>
+<li><strong>想快速拼一个小工具？</strong> 先试 Termux。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ADB</th>
+<th>HTTP/MCP 桥接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开发成本</td>
+<td>低</td>
+<td>中到高</td>
+</tr>
+<tr>
+<td>临时探索</td>
+<td>很适合</td>
+<td>不划算</td>
+</tr>
+<tr>
+<td>长期稳定</td>
+<td>依赖网络和 adbd 状态</td>
+<td>更容易控制</td>
+</tr>
+<tr>
+<td>功能范围</td>
+<td>很宽，可读 UI、模拟操作</td>
+<td>取决于实现的接口</td>
+</tr>
+<tr>
+<td>安全边界</td>
+<td>较粗，需要谨慎</td>
+<td>可以按接口最小化权限</td>
+</tr>
+</tbody>
+</table>
+<h2>安全边界不能省</h2>
+<p>手机控制权比普通 API 敏感得多。至少要做到：</p>
+<ul>
+<li>不把 ADB 或桥接服务暴露到公网；</li>
+<li>Tailscale 配置 ACL，只允许必要的设备访问；</li>
+<li>HTTP/MCP 接口使用 Token；</li>
+<li>只开放真正需要的动作；</li>
+<li>涉及短信、通知、无障碍和支付 App 时，默认需要人工确认。</li>
+</ul>
+<p>尤其是“能模拟点击”不等于“应该自动点击一切”。技术上能做的事情，和适合交给 Agent 的事情，不是同一个范围。</p>
+<h2>结论</h2>
+<p>让 NAS 上的 AI 调用手机能力，关键不是把厂商端侧 AI 拆出来，而是搭一条清晰、可控的桥：</p>
+<ul>
+<li>ADB 适合先验证和处理复杂、临时的界面操作；</li>
+<li>原生 HTTP/MCP 桥接适合沉淀稳定、可审计的常用能力；</li>
+<li>Termux 适合快速试验，但不宜高估它的系统权限和保活能力。</li>
+</ul>
+<p>我现在的路线已经从“先设计完整桥接层”改成了“先用 ADB 把真实需求跑通，再把值得长期保留的部分抽成工具”。实践比理论更慢，也更容易推翻漂亮的假设，但它能告诉你什么真的能用。</p>
+  </article>
+</div>
+<footer>
+  <div class="container"><p>© 2026 陈鸿晖 · <a href="index.html" style="color:var(--accent-2);text-decoration:none;">折腾笔记</a></p></div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 调用手机端侧能力：从平板到主力机 · 陈鸿晖的折腾笔记</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-soft: #161b22; --card: #1a2029;
+  --text: #e6edf3; --muted: #8b949e;
+  --accent: #7ee0a3; --accent-2: #58a6ff; --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.8;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.topbar { padding: 28px 0 8px; }
+.topbar a {
+  color: var(--accent-2); text-decoration: none; font-size: .9rem;
+}
+.topbar a:hover { text-decoration: underline; }
+header {
+  padding: 48px 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: -80%; right: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(126,224,163,.10), transparent 60%);
+  pointer-events: none;
+}
+header h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: .04em; }
+header .meta { color: var(--muted); font-size: .88rem; margin-top: 10px; }
+header .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-size: .78rem; color: var(--muted);
+  border: 1px solid var(--border); padding: 2px 10px; border-radius: 999px;
+}
+article {
+  padding: 32px 0 64px;
+  color: var(--text);
+  font-size: 1rem;
+}
+article h2 { font-size: 1.35rem; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+article h3 { font-size: 1.15rem; margin: 26px 0 10px; }
+article h4 { font-size: 1.02rem; margin: 22px 0 8px; }
+article p { margin: 12px 0; }
+article a { color: var(--accent-2); text-decoration: none; }
+article a:hover { text-decoration: underline; }
+article ul, article ol { margin: 12px 0; padding-left: 26px; }
+article li { margin: 6px 0; }
+article blockquote {
+  margin: 16px 0; padding: 10px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-soft); border-radius: 0 8px 8px 0;
+  color: var(--muted);
+}
+article code {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 5px; font-size: .88em;
+}
+article pre {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 16px 18px; border-radius: 10px; overflow-x: auto;
+  margin: 16px 0;
+}
+article pre code { background: none; border: none; padding: 0; font-size: .86em; line-height: 1.6; }
+article img { max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin: 12px 0; }
+article table { border-collapse: collapse; margin: 16px 0; width: 100%; font-size: .92rem; }
+article th, article td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+article th { background: var(--bg-soft); }
+article hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0 56px; text-align: center;
+  color: var(--muted); font-size: .85rem;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar"><a href="index.html">← 返回笔记</a></div>
+  <header>
+    <h1>AI Agent 调用手机端侧能力：从平板到主力机</h1>
+    <div class="meta">2026-08-31</div>
+    <div class="tags"><span class="tag">自动化</span><span class="tag">ADB</span><span class="tag">Android</span><span class="tag">Tailscale</span><span class="tag">折腾</span></div>
+  </header>
+  <article>
+<p>之前，NAS 上的 AI 已经能通过 WiFi ADB 遥控一台平板：读屏、点击、查电费都没问题。但平板不是随身设备，很多真正有用的事情还是发生在手机上。</p>
+<p>于是我把这条链路搬到了每天带在身上的荣耀主力机。它没有 root，不能照搬平板上的权限玩法，但可以利用 <strong>Tailscale + ADB</strong> 建立一条跨网通道。最终跑通了三个场景：隔空定闹钟、查看淘宝待收货，以及在手机上查电费。</p>
+<p>这篇记录的是从“理论上可行”到“真机真的能跑”的过程，也包括一个需要回头修改理论篇的结论。</p>
+<h2>为什么非 root 也够用</h2>
+<p>日常自动化里，很多事情并不需要 root：启动 App、读取 UI 树、模拟点击、读取电量和前台窗口，ADB 的 shell 权限已经够用。</p>
+<p>真正的难点是连接稳定性：</p>
+<ul>
+<li>无线调试的端口可能是随机的；</li>
+<li>手机的局域网地址会随 DHCP 变化；</li>
+<li>国产 ROM 往往要求设备连接 WiFi 才能打开无线调试；</li>
+<li>手机重启后，临时的 TCP ADB 状态可能消失。</li>
+</ul>
+<p>Tailscale 解决的是网络位置问题。手机和 NAS 都加入同一个虚拟网络后，手机会获得固定的 <code>100.x</code> 地址，即使手机改用流量，也不必依赖家里的局域网地址。</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>NAS / Hermes Agent
+       │ adb + 自动重连
+       │ Tailscale 虚拟网络
+       ▼
+荣耀主力机（非 root）
+       ├─ 系统闹钟
+       ├─ 淘宝界面
+       └─ 支付宝生活缴费
+</code></pre></div>
+
+<h2>连接方案：固定端口优先，随机端口兜底</h2>
+<p>第一次用 USB 连接手机后，可以让 adbd 暂时监听 5555：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>adb<span style="color: #bbbbbb"> </span>tcpip<span style="color: #bbbbbb"> </span><span style="color: #666666">5555</span>
+adb<span style="color: #bbbbbb"> </span>connect<span style="color: #bbbbbb"> </span>&lt;手机<span style="color: #bbbbbb"> </span>Tailscale<span style="color: #bbbbbb"> </span>IP&gt;:5555
+</code></pre></div>
+
+<p>但这里的“固定”只是当前开机周期内有效：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>service.adb.tcp.port
+</code></pre></div>
+
+<p>不带 <code>persist</code> 前缀，手机重启后通常会回到 USB 模式。因此 host 端脚本不能只认 5555，而应当：</p>
+<ol>
+<li>先尝试 <code>Tailscale IP:5555</code>；</li>
+<li>失败后扫描无线调试可能使用的随机端口；</li>
+<li>对每个候选端口执行 <code>adb connect</code>；</li>
+<li>只有返回 <code>device</code>，而不是 <code>offline</code>，才算连接成功。</li>
+</ol>
+<p>伪逻辑如下：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">for</span> port <span style="color: #AA22FF; font-weight: bold">in</span> [<span style="color: #666666">5555</span>] <span style="color: #666666">+</span> candidate_ports:
+    <span style="color: #008000; font-weight: bold">if</span> port_open(phone_ip, port):
+        <span style="color: #008000; font-weight: bold">if</span> adb_connect(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>phone_ip<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">:</span><span style="color: #A45A77; font-weight: bold">{</span>port<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>) <span style="color: #666666">==</span> <span style="color: #BA2121">&quot;device&quot;</span>:
+            <span style="color: #008000; font-weight: bold">return</span> port
+<span style="color: #008000; font-weight: bold">raise</span> <span style="color: #CB3F38; font-weight: bold">ConnectionError</span>(<span style="color: #BA2121">&quot;phone ADB unavailable&quot;</span>)
+</code></pre></div>
+
+<p>实测连接成功后，可以读到电量、前台窗口并正常执行 UI 操作。这说明链路不是“端口看起来开着”，而是命令确实已经到达手机。</p>
+<h2>场景一：隔空创建一次性闹钟</h2>
+<p>荣耀时钟的包名不是常见的 <code>com.android.deskclock</code>，而是 <code>com.hihonor.deskclock</code>。通过标准的 <code>ACTION_SET_ALARM</code> 广播可以调用系统设置闹钟：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>am<span style="color: #bbbbbb"> </span>start<span style="color: #bbbbbb"> </span>-a<span style="color: #bbbbbb"> </span>android.intent.action.SET_ALARM<span style="color: #bbbbbb"> </span><span style="color: #AA5D1F; font-weight: bold">\</span>
+<span style="color: #bbbbbb">  </span>--ei<span style="color: #bbbbbb"> </span>android.intent.extra.alarm.HOUR<span style="color: #bbbbbb"> </span><span style="color: #666666">20</span><span style="color: #bbbbbb"> </span><span style="color: #AA5D1F; font-weight: bold">\</span>
+<span style="color: #bbbbbb">  </span>--ei<span style="color: #bbbbbb"> </span>android.intent.extra.alarm.MINUTES<span style="color: #bbbbbb"> </span><span style="color: #666666">18</span><span style="color: #bbbbbb"> </span><span style="color: #AA5D1F; font-weight: bold">\</span>
+<span style="color: #bbbbbb">  </span>--es<span style="color: #bbbbbb"> </span>android.intent.extra.alarm.MESSAGE<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;备注&quot;</span><span style="color: #bbbbbb"> </span><span style="color: #AA5D1F; font-weight: bold">\</span>
+<span style="color: #bbbbbb">  </span>--ez<span style="color: #bbbbbb"> </span>android.intent.extra.alarm.SKIP_UI<span style="color: #bbbbbb"> </span><span style="color: #008000">true</span>
+</code></pre></div>
+
+<p>荣耀 MagicOS 对 <code>SKIP_UI=true</code> 的处理比我预想得更彻底：它直接创建了一次性闹钟，不需要再手动点确认。</p>
+<p>这也推翻了理论篇里原先的绝对表述。之前我以为 <code>ACTION_SET_ALARM</code> 只能预填时间、等待用户确认；现在看来，<strong>同一个系统契约在不同 ROM 上可能有不同结果</strong>。写 Android 自动化时，标准文档是起点，真机行为才是结论。</p>
+<h2>场景二：查看淘宝待收货</h2>
+<p>启动淘宝时，我没有猜具体 Activity，而是使用 Launcher 入口：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>adb<span style="color: #bbbbbb"> </span>shell<span style="color: #bbbbbb"> </span>monkey<span style="color: #bbbbbb"> </span>-p<span style="color: #bbbbbb"> </span>com.taobao.taobao<span style="color: #bbbbbb"> </span><span style="color: #AA5D1F; font-weight: bold">\</span>
+<span style="color: #bbbbbb">  </span>-c<span style="color: #bbbbbb"> </span>android.intent.category.LAUNCHER<span style="color: #bbbbbb"> </span><span style="color: #666666">1</span>
+</code></pre></div>
+
+<p>进入“我的淘宝”后，再导出 UI 树并读取待收货数量。这里遇到一个小坑：数量显示在 <code>content-desc</code>，不在 <code>text</code>。解析器如果只看 <code>text</code>，会得到一个没有数字的页面。</p>
+<p>因此读取 UI 时，至少要同时检查：</p>
+<ul>
+<li><code>text</code>：可见文字；</li>
+<li><code>content-desc</code>：无障碍描述和部分动态数量。</li>
+</ul>
+<h2>场景三：把电费查询搬到主力机</h2>
+<p>之前平板上的查电费脚本已经能跑，这次只是把设备连接和部分页面特征迁移到手机端：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>python3<span style="color: #bbbbbb"> </span>query_electricity_phone.py
+python3<span style="color: #bbbbbb"> </span>query_electricity_phone.py<span style="color: #bbbbbb"> </span>--threshold<span style="color: #bbbbbb"> </span><span style="color: #666666">20</span>
+python3<span style="color: #bbbbbb"> </span>query_electricity_phone.py<span style="color: #bbbbbb"> </span>--out<span style="color: #bbbbbb"> </span>result.json
+</code></pre></div>
+
+<p>支付宝“生活缴费”页使用懒加载。刚进入页面时，<code>uiautomator dump</code> 可能只有标题和图标，“查看电费”“余额”等内容要过几秒才出现。脚本不能只查一次，而要轮询等待：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">goto_life_fee</span>(max_try<span style="color: #666666">=8</span>):
+    <span style="color: #008000; font-weight: bold">for</span> _ <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">range</span>(max_try):
+        nodes <span style="color: #666666">=</span> dump_and_parse()
+        <span style="color: #008000; font-weight: bold">if</span> contains_fee_content(nodes):
+            <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000; font-weight: bold">True</span>
+        <span style="color: #008000; font-weight: bold">if</span> is_alipay_home(nodes):
+            tap_life_fee_entry(nodes)
+        sleep(<span style="color: #666666">2</span>)
+    <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000; font-weight: bold">False</span>
+</code></pre></div>
+
+<p>判断“是否在首页”也很重要。不能只看到“生活缴费”四个字就点击，否则进入生活缴费页后，脚本可能把页面标题误认为入口，反复点错位置。</p>
+<p>示例输出中的账户信息已脱敏：</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>{
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;balance&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;6.76&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;account&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;****&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;company&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;南京供电公司&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;debt&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #BA2121">&quot;无欠费&quot;</span>,
+<span style="color: #bbbbbb">  </span><span style="color: #008000; font-weight: bold">&quot;ok&quot;</span>:<span style="color: #bbbbbb"> </span><span style="color: #008000; font-weight: bold">true</span>
+}
+</code></pre></div>
+
+<h2>关于 Shizuku：实测推翻原结论</h2>
+<p>理论篇曾经写过：非 root 手机可以用 Shizuku 写入 <code>persist.service.adb.tcp.port</code>，让 5555 在重启后继续保持。这个判断后来被实机验证推翻：</p>
+<ol>
+<li>shell 用户写入 <code>persist.*</code> 属性会失败；</li>
+<li>Shizuku 的权限上限仍然是 adb/shell 级，不等于 root；</li>
+<li>官方 issue 也说明，Shizuku 本身不能凭空让一个持久 ADB 端口在重启后自动出现。</li>
+</ol>
+<p>如果追求开机后自动恢复，可以研究 Automate、Tasker 等手机端自动化工具；但这意味着额外安装和配置。当前我采用更简单的方案：让 NAS 端自动发现端口并重连。它不够优雅，却少了两层依赖。</p>
+<h2>踩坑总表</h2>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>persist...</code> 写入失败</td>
+<td>shell 无权修改持久属性</td>
+<td>不依赖 Shizuku 固定端口，改 host 自动重连</td>
+</tr>
+<tr>
+<td><code>adb tcpip</code> 重启失效</td>
+<td>临时 TCP 状态不会持久保存</td>
+<td>接受重启后重连或扫描随机端口</td>
+</tr>
+<tr>
+<td>淘宝 <code>Error type 3</code></td>
+<td>Activity 路径会变</td>
+<td>使用 Launcher 入口</td>
+</tr>
+<tr>
+<td>待收货数量读不到</td>
+<td>数字在 <code>content-desc</code></td>
+<td>同时解析 <code>text</code> 和 <code>content-desc</code></td>
+</tr>
+<tr>
+<td>生活缴费入口找不到</td>
+<td>页面懒加载</td>
+<td>轮询等待，并区分首页与目标页</td>
+</tr>
+</tbody>
+</table>
+<h2>这次实践说明了什么</h2>
+<p>从平板到主力机，真正新增的不是某条神奇命令，而是一条更可靠的连接策略：Tailscale 负责让设备“找得到”，ADB 负责让命令“发得进去”，UI 树负责让脚本“看得懂”。</p>
+<p>它仍然不是一个适合所有人的产品化方案。重启、锁屏、网络和 App 改版都可能让自动化失效。但对自己的设备、自己的日常流程来说，先用 ADB 跑通，再把稳定需求抽成正式工具，往往比一开始就设计完整系统更快。</p>
+<p>折腾的意义，不是证明理论永远正确，而是愿意在真机面前承认它错了，然后把方案改到真的能用。</p>
+  </article>
+</div>
+<footer>
+  <div class="container"><p>© 2026 陈鸿晖 · <a href="index.html" style="color:var(--accent-2);text-decoration:none;">折腾笔记</a></p></div>
+</footer>
+</body>
+</html>
