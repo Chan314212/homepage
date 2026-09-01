@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的摘抄 · 陈鸿晖</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-soft: #161b22;
+  --text: #e6edf3; --muted: #8b949e;
+  --accent: #7ee0a3; --accent-2: #58a6ff; --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.8;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.topbar { padding: 28px 0 8px; }
+.topbar a { color: var(--accent-2); text-decoration: none; font-size: .9rem; }
+.topbar a:hover { text-decoration: underline; }
+main { min-height: 68vh; padding: 72px 0; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing: .04em; }
+.lead { margin-top: 14px; color: var(--muted); }
+.empty {
+  margin-top: 44px; padding: 38px 26px; text-align: center;
+  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--muted);
+}
+.empty p:first-child { color: var(--text); font-size: 1.08rem; }
+footer { border-top: 1px solid var(--border); padding: 28px 0 56px; text-align: center; color: var(--muted); font-size: .85rem; }
+footer a { color: var(--accent-2); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar"><a href="../index.html">← 返回主页</a></div>
+  <main>
+    <h1>我的摘抄</h1>
+    <p class="lead">把遇见过的好句子留下来。</p>
+    <div class="empty">
+      <p>这里暂时空着。</p>
+      <p>以后读书、看电影，或在某个偶然的时刻遇见值得留下的话，再慢慢填进来。</p>
+    </div>
+  </main>
+</div>
+<footer><div class="container"><p>© 2026 陈鸿晖 · <a href="../index.html">个人主页</a></p></div></footer>
+</body>
+</html>
