@@ -188,10 +188,13 @@ footer a:hover { text-decoration: underline; }
   margin-top: 24px;
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
   gap: 10px;
 }
 .note-entry a {
   display: inline-block;
+  flex: 0 0 auto;
   color: var(--accent);
   border: 1px solid var(--accent);
   padding: 8px 22px;
@@ -204,7 +207,7 @@ footer a:hover { text-decoration: underline; }
 
 @media (max-width: 600px) {
   .note-entry a { text-align: center; }
-  .note-entry a:last-child { flex-basis: 100%; }
+  .note-entry a:last-child { flex-basis: auto; }
 }
 
 /* ---------- Reveal animation ---------- */
