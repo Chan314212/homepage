@@ -45,7 +45,7 @@ def article_page(post):
 <div class="topbar"><a href="index.html">← 返回读书笔记</a></div>
 <header><h1>{html.escape(post["title"])}</h1><div class="meta">{post["date_display"]}</div><div class="tags">{tags}</div></header>
 <article>{post["body_html"]}</article>
-</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">个人主页</a></p></div></footer>
+</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">个人主页</a></p><p style="margin-top:6px;"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
 </body></html>'''
 
 
@@ -62,7 +62,7 @@ def list_page(posts):
 <title>读书笔记 · 陈鸿晖</title><style>{BASE_CSS}{LIST_CSS}</style></head>
 <body><div class="container"><div class="topbar"><a href="../index.html">← 返回主页</a></div>
 <h1 class="list-title">读书笔记</h1><p class="list-sub">记下读到某处时，心里被翻动的东西。</p>{cards_html}
-</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p></div></footer>
+</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p style="margin-top:6px;"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
 </body></html>'''
 
 

@@ -178,7 +178,7 @@ def build_list_page(posts):
   {cards_html}
 </div>
 <footer>
-  <div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p></div>
+  <div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p style="margin-top:6px;"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
 </footer>
 </body>
 </html>"""
@@ -206,7 +206,7 @@ def build_post_page(post):
   </article>
 </div>
 <footer>
-  <div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="index.html" style="color:var(--accent-2);text-decoration:none;">折腾笔记</a></p></div>
+  <div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="index.html" style="color:var(--accent-2);text-decoration:none;">折腾笔记</a></p><p style="margin-top:6px;"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
 </footer>
 </body>
 </html>"""
