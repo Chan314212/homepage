@@ -78,6 +78,12 @@ footer {
   padding: 28px 0 56px; text-align: center;
   color: var(--muted); font-size: .85rem;
 }
+.filing { margin-top: 6px; }
+.filing-link {
+  color: var(--accent-2) !important; text-decoration: none;
+  display: inline-flex; align-items: center; vertical-align: middle;
+}
+.filing-link:hover { color: var(--accent-2) !important; text-decoration: underline; }
 
 .list-title { padding: 40px 0 8px; font-size: clamp(1.8rem, 5vw, 2.4rem); }
 .list-sub { color: var(--muted); font-size: .92rem; margin: 10px 0 28px; }
@@ -100,7 +106,13 @@ footer {
   <div class="topbar"><a href="../index.html">← 返回主页</a></div>
   <h1 class="list-title">折腾笔记</h1>
   <p class="list-sub">数码折腾、黑苹果、Linux、NAS 自托管……把搞明白的东西写下来，对抗遗忘。</p>
-  <a class="note-card" href="AI-Agent-调用手机端侧能力-从平板到主力机.html">
+  <a class="note-card" href="社保-退休与养老金-从-6000-元缴费基数算到未来.html">
+  <h3>社保、退休与养老金：从 6000 元缴费基数算到未来</h3>
+  <div class="meta">2026-09-04</div>
+  <div class="summary">从退休年龄、养老保险最低缴费年限，到 6000 元缴费基数下的养老金静态估算，也谈谈人口下降会不会让未来养老金无钱可发。</div>
+  <div class="tags"><span class="tag">社保</span><span class="tag">养老金</span><span class="tag">退休</span><span class="tag">个人理财</span></div>
+</a>
+<a class="note-card" href="AI-Agent-调用手机端侧能力-从平板到主力机.html">
   <h3>AI Agent 调用手机端侧能力：从平板到主力机</h3>
   <div class="meta">2026-08-31</div>
   <div class="summary">把原本只能遥控平板的 ADB 方案搬到非 root 的荣耀主力机上：用 Tailscale 跨网连接，实测完成定闹钟、查快递和查电费，也修正了理论篇里关于 Shizuku 的错误判断。</div>
@@ -126,7 +138,7 @@ footer {
 </a>
 </div>
 <footer>
-  <div class="container"><p>© 2026 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p style="margin-top:6px;"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
+  <div class="container"><p>© 2026 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
 </footer>
 </body>
 </html>
