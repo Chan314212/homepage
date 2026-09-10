@@ -1,2 +1,5 @@
 # 本地预览临时文件
 .preview.pid
+
+# Python 构建脚本缓存
+__pycache__/

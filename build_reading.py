@@ -6,10 +6,13 @@ from datetime import datetime
 from pathlib import Path
 
 from build_notes import BASE_CSS, LIST_CSS, parse_frontmatter, render_article, slugify
+from site_meta import head_meta
 
 ROOT = Path(__file__).resolve().parent
 POSTS_DIR = ROOT / "reading" / "posts"
 OUT_DIR = ROOT / "reading"
+
+READING_DESC = "陈鸿晖的读书笔记：读小说，也读人——记下读到某处时，心里被翻动的东西。"
 
 
 def load_posts():
@@ -37,15 +40,21 @@ def load_posts():
 
 def article_page(post):
     tags = "".join(f'<span class="tag">{html.escape(t)}</span>' for t in post["tags"])
+    page_title = f"{post['title']} · 陈鸿晖的读书笔记"
+    meta_html = head_meta(page_title, post["summary"], f"/reading/{post['file']}",
+                          og_type="article", published=post["date"],
+                          tags=post["tags"])
     return f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{html.escape(post["title"])} · 陈鸿晖的读书笔记</title><style>{BASE_CSS}</style></head>
+<title>{html.escape(page_title)}</title>
+{meta_html}
+<style>{BASE_CSS}</style></head>
 <body><div class="container">
 <div class="topbar"><a href="index.html">← 返回读书笔记</a></div>
 <header><h1>{html.escape(post["title"])}</h1><div class="meta">{post["date_display"]}</div><div class="tags">{tags}</div></header>
 <article>{post["body_html"]}</article>
-</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">个人主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
+</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">个人主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
 </body></html>'''
 
 
@@ -57,12 +66,15 @@ def list_page(posts):
 <h3>{html.escape(p["title"])}</h3><div class="meta">{p["date_display"]}</div>
 <div class="summary">{html.escape(p["summary"])}</div><div class="tags">{tags}</div></a>''')
     cards_html = "\n".join(cards) or '<p class="empty">还没有读书笔记。</p>'
+    meta_html = head_meta("读书笔记 · 陈鸿晖", READING_DESC, "/reading/")
     return f'''<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>读书笔记 · 陈鸿晖</title><style>{BASE_CSS}{LIST_CSS}</style></head>
-<body><div class="container"><div class="topbar"><a href="../index.html">← 返回主页</a></div>
+<title>读书笔记 · 陈鸿晖</title>
+{meta_html}
+<style>{BASE_CSS}{LIST_CSS}</style></head>
+<body><div class="container"><div class="topbar"><a href="/">← 返回主页</a></div>
 <h1 class="list-title">读书笔记</h1><p class="list-sub">记下读到某处时，心里被翻动的东西。</p>{cards_html}
-</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
+</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
 </body></html>'''
 
 

@@ -20,9 +20,14 @@ from datetime import datetime
 
 import markdown
 
+from site_meta import head_meta
+
 ROOT = Path(__file__).resolve().parent
 POSTS_DIR = ROOT / "notes" / "posts"
 OUT_DIR = ROOT / "notes"
+
+NOTES_DESC = ("陈鸿晖的折腾笔记：ADB 自动化、手机与 AI Agent 协作、DIY NAS 攒机、"
+              "社保养老金计算……把搞明白的东西写下来，对抗遗忘。")
 
 # ---------- 主题样式（与主页 index.html 一致的深色 GitHub 风） ----------
 BASE_CSS = """
@@ -174,29 +179,35 @@ def build_list_page(posts):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>折腾笔记 · 陈鸿晖</title>
+{head_meta("折腾笔记 · 陈鸿晖", NOTES_DESC, "/notes/")}
 <style>{BASE_CSS}{LIST_CSS}</style>
 </head>
 <body>
 <div class="container">
-  <div class="topbar"><a href="../index.html">← 返回主页</a></div>
+  <div class="topbar"><a href="/">← 返回主页</a></div>
   <h1 class="list-title">折腾笔记</h1>
   <p class="list-sub">数码折腾、黑苹果、Linux、NAS 自托管……把搞明白的东西写下来，对抗遗忘。</p>
   {cards_html}
 </div>
 <footer>
-  <div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="../index.html" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
+  <div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
 </footer>
 </body>
 </html>"""
 
 
 def build_post_page(post):
+    page_title = f"{post['title']} · 陈鸿晖的折腾笔记"
+    meta_html = head_meta(page_title, post["summary"], f"/notes/{post['file']}",
+                          og_type="article", published=post["date_sort"],
+                          tags=post["tags"])
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{html.escape(post['title'])} · 陈鸿晖的折腾笔记</title>
+<title>{html.escape(page_title)}</title>
+{meta_html}
 <style>{BASE_CSS}</style>
 </head>
 <body>
