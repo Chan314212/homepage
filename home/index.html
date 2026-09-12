@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的家 · 陈鸿晖</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+:root {
+  --bg: #0d1117;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #7ee0a3;
+  --border: #2d333b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+#scene { position: fixed; inset: 0; touch-action: none; }
+#scene canvas { display: block; }
+.overlay {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  pointer-events: none;
+  z-index: 10;
+}
+.overlay a {
+  pointer-events: auto;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .9rem;
+  border: 1px solid var(--border);
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(13,17,23,.55);
+  backdrop-filter: blur(6px);
+  transition: color .2s, border-color .2s;
+}
+.overlay a:hover { color: var(--accent); border-color: var(--accent); }
+.title {
+  pointer-events: none;
+  text-align: center;
+  position: fixed;
+  top: 20px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+}
+.title h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: .35em; text-indent: .35em; }
+.title p { font-size: .74rem; color: var(--muted); margin-top: 2px; letter-spacing: .12em; }
+.hint {
+  position: fixed;
+  bottom: 22px; left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: .78rem;
+  letter-spacing: .08em;
+  z-index: 9;
+  opacity: 1;
+  transition: opacity 1.2s;
+  pointer-events: none;
+  background: rgba(13,17,23,.5);
+  padding: 5px 14px;
+  border-radius: 999px;
+}
+.hint.gone { opacity: 0; }
+#fallback {
+  display: none;
+  position: fixed; inset: 0;
+  align-items: center; justify-content: center;
+  color: var(--muted); font-size: .95rem;
+  text-align: center; padding: 24px;
+}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div class="overlay">
+  <a href="/">← 回主页</a>
+</div>
+<div class="title">
+  <h1>我 的 家</h1>
+  <p>一座想象中的中式小楼 · 夜晚</p>
+</div>
+<div class="hint" id="hint">按住拖动转一转 · 滚轮/双指拉近看</div>
+<div id="fallback">这台设备带不动 WebGL，主页在<a href="/" style="color:var(--accent)">这里</a>。</div>
+
+<script src="/assets/three.min.js"></script>
+<script>
+(function () {
+if (typeof THREE === 'undefined') {
+  document.getElementById('fallback').style.display = 'flex';
+  return;
+}
+
+/* ---------- 基础 ---------- */
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e16);
+scene.fog = new THREE.Fog(0x0a0e16, 34, 90);
+
+const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, .1, 200);
+
+/* ---------- 材质 ---------- */
+const M = {
+  wall:   new THREE.MeshStandardMaterial({ color: 0xe8e2d5, roughness: .92 }),
+  wall2:  new THREE.MeshStandardMaterial({ color: 0xdcd5c6, roughness: .92 }),
+  wood:   new THREE.MeshStandardMaterial({ color: 0x7a3b2e, roughness: .7 }),
+  woodD:  new THREE.MeshStandardMaterial({ color: 0x5a2b20, roughness: .75 }),
+  roof:   new THREE.MeshStandardMaterial({ color: 0x2b3138, roughness: .85, side: THREE.DoubleSide, flatShading: true }),
+  ridge:  new THREE.MeshStandardMaterial({ color: 0x8c2f24, roughness: .6 }),
+  stone:  new THREE.MeshStandardMaterial({ color: 0x565c63, roughness: .95 }),
+  ground: new THREE.MeshStandardMaterial({ color: 0x171c24, roughness: 1 }),
+  path:   new THREE.MeshStandardMaterial({ color: 0x232a34, roughness: 1 }),
+  leaf:   new THREE.MeshStandardMaterial({ color: 0x1d3a2a, roughness: .9 }),
+  trunk:  new THREE.MeshStandardMaterial({ color: 0x3a2c22, roughness: .95 }),
+  window: new THREE.MeshStandardMaterial({ color: 0xffd79a, emissive: 0xffb45e, emissiveIntensity: 1.6 }),
+  lantern:new THREE.MeshStandardMaterial({ color: 0xff5540, emissive: 0xff3820, emissiveIntensity: 1.9, roughness: .5 }),
+  gold:   new THREE.MeshStandardMaterial({ color: 0xc9a24b, roughness: .4, metalness: .6 }),
+  moon:   new THREE.MeshBasicMaterial({ color: 0xf5efdc, fog: false }),
+};
+
+function box(w, h, d, mat, x, y, z, parent) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+/* ---------- 地面与院子 ---------- */
+const ground = new THREE.Mesh(new THREE.CircleGeometry(40, 48), M.ground);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 院台（方砖地）
+const yard = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.5, .18, 4), M.path);
+yard.position.y = .09; yard.rotation.y = Math.PI / 4;
+yard.receiveShadow = true;
+scene.add(yard);
+
+// 门前石板路
+for (let i = 0; i < 7; i++) {
+  const s = new THREE.Mesh(new THREE.BoxGeometry(1.5, .1, .8), M.path);
+  s.position.set(0, .24, 6.4 + i * 1.5);
+  s.receiveShadow = true; s.castShadow = true;
+  scene.add(s);
+}
+
+/* ---------- 屋体 ---------- */
+const house = new THREE.Group();
+scene.add(house);
+
+// 石砌台基 + 台阶
+box(7.6, .55, 5.6, M.stone, 0, .28, 0, house);
+box(8.4, .3, 6.4, M.stone, 0, .15, 0, house);
+for (let i = 0; i < 3; i++) box(2.6 - i * .3, .18, .5 + i * .5, M.stone, 0, .1 + i * .18, 3.0 + i * .28, house);
+
+// 一层
+box(6.8, 3.1, 4.6, M.wall, 0, 2.1, 0, house);
+// 一层木柱（四面檐柱）
+[[-3.5, 2.4], [3.5, 2.4], [-3.5, -2.4], [3.5, -2.4]].forEach(([x, z]) => {
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(.16, .18, 3.1, 10), M.wood);
+  p.position.set(x, 2.1, z); p.castShadow = true; house.add(p);
+});
+// 大门
+box(1.5, 2.3, .12, M.woodD, 0, 1.55, 2.36, house);
+box(1.75, .22, .16, M.wood, 0, 2.85, 2.36, house);           // 门楣
+box(.09, 2.3, .14, M.wood, -.62, 1.55, 2.38, house);          // 门缝线
+box(.09, 2.3, .14, M.wood,  .62, 1.55, 2.38, house);
+// 门环
+[-.32, .32].forEach(x => {
+  const r = new THREE.Mesh(new THREE.TorusGeometry(.09, .025, 8, 18), M.gold);
+  r.position.set(x, 1.75, 2.46); house.add(r);
+});
+// 一层窗
+[[-2.35, 2.42], [2.35, 2.42]].forEach(([x, z]) => {
+  box(1.15, 1.15, .08, M.window, x, 2.15, z, house);
+  box(1.3, .1, .14, M.wood, x, 2.85, z, house);
+  box(1.3, .1, .14, M.wood, x, 1.45, z, house);
+  box(.06, 1.15, .12, M.wood, x, 2.15, z + .03, house);
+});
+
+// 二层
+box(5.2, 2.5, 3.6, M.wall2, 0, 4.9, 0, house);
+// 二层回廊栏杆 + 檐柱
+[[-2.85, 1.9], [2.85, 1.9], [-2.85, -1.9], [2.85, -1.9]].forEach(([x, z]) => {
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, 2.5, 10), M.wood);
+  p.position.set(x, 4.9, z); p.castShadow = true; house.add(p);
+});
+box(6.2, .28, 4.4, M.wood, 0, 3.68, 0, house);   // 二层楼板出檐
+// 二层窗（三面）
+box(1.5, 1.25, .08, M.window, 0, 4.95, 1.86, house);
+box(1.5, 1.25, .08, M.window, -2.66, 4.95, 0, house).rotation.y = Math.PI / 2;
+box(1.5, 1.25, .08, M.window,  2.66, 4.95, 0, house).rotation.y = Math.PI / 2;
+// 窗棂
+[0, 1.86].forEach(() => {});
+function mullion(w, x, y, z, ry) {
+  const g = new THREE.Group();
+  box(w, .05, .1, M.woodD, 0, 0, 0, g);
+  g.position.set(x, y, z); g.rotation.y = ry || 0;
+  house.add(g);
+}
+mullion(1.5, 0, 4.95, 1.9);
+mullion(1.5, 0, 5.35, 1.9);
+mullion(1.5, 0, 4.55, 1.9);
+
+/* ---------- 屋顶（起翘飞檐） ---------- */
+// 用自定义 BufferGeometry 做四角上翘的庑殿/歇山简化屋顶
+// 封闭四坡屋顶：四角起翘、四边中点外挑下垂，扇面剖分 + 底面收口，不留缝
+function makeRoof(baseW, baseD, peakH, overhang, upturn) {
+  const hw = baseW / 2 + overhang, hd = baseD / 2 + overhang;
+  const u = upturn, rw = baseW * .18;
+  const V = [
+    [-hw, u, hd], [hw, u, hd], [hw, u, -hd], [-hw, u, -hd],   // 0-3 四角（起翘）
+    [0, u * .45, hd * 1.08], [hw * 1.08, u * .45, 0],         // 4-7 四边中点（外挑）
+    [0, u * .45, -hd * 1.08], [-hw * 1.08, u * .45, 0],
+    [-rw, peakH, 0], [rw, peakH, 0],                          // 8-9 正脊两端
+  ];
+  const idx = [
+    0,4,8, 4,9,8, 4,1,9,     // 前坡
+    1,5,9, 5,2,9,            // 右坡
+    2,6,9, 6,8,9, 6,3,8,     // 后坡
+    3,7,8, 7,0,8,            // 左坡
+  ];
+  const c = V.length;
+  V.push([0, u * .2, 0]);    // 底面收口，檐下不透空
+  idx.push(c,0,4, c,4,1, c,1,5, c,5,2, c,2,6, c,6,3, c,3,7, c,7,0);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(V.flat(), 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, M.roof);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+// 沿两点连线放一根梁（正脊/垂脊），保证贴面不悬空
+function beam(x1, y1, z1, x2, y2, z2, w, h, mat, parent) {
+  const d = new THREE.Vector3(x2 - x1, y2 - y1, z2 - z1);
+  const m = box(d.length(), h, w, mat, 0, 0, 0, parent);
+  m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), d.normalize());
+  return m;
+}
+
+// 一层大屋顶
+const roof1 = makeRoof(6.8, 4.6, 1.9, 1.5, .55);
+roof1.position.y = 3.66;
+house.add(roof1);
+// 正脊 + 垂脊（沿屋顶真实顶点放梁）+ 脊吻
+(function () {
+  const y0 = 3.66, hw = 4.9, hd = 3.8, rw = 1.224, pk = y0 + 1.9, cu = y0 + .55;
+  beam(-rw, pk, 0, rw, pk, 0, .3, .24, M.ridge, house);          // 正脊
+  [[-1, 1], [1, 1], [1, -1], [-1, -1]].forEach(([sx, sz]) => {   // 四条垂脊
+    beam(sx * rw, pk + .05, 0, sx * hw, cu + .1, sz * hd, .18, .16, M.ridge, house);
+  });
+  [-rw - .1, rw + .1].forEach(x => {                             // 吻兽
+    const k = box(.3, .55, .34, M.ridge, x, pk + .25, 0, house);
+    k.rotation.z = x > 0 ? -.3 : .3;
+  });
+})();
+
+// 二层小屋顶
+const roof2 = makeRoof(5.2, 3.6, 1.5, 1.15, .45);
+roof2.position.y = 6.16;
+house.add(roof2);
+(function () {
+  const y0 = 6.16, hw = 3.75, hd = 2.95, rw = .936, pk = y0 + 1.5, cu = y0 + .45;
+  beam(-rw, pk, 0, rw, pk, 0, .26, .2, M.ridge, house);
+  [[-1, 1], [1, 1], [1, -1], [-1, -1]].forEach(([sx, sz]) => {
+    beam(sx * rw, pk + .04, 0, sx * hw, cu + .08, sz * hd, .15, .13, M.ridge, house);
+  });
+  [-rw - .08, rw + .08].forEach(x => {
+    const k = box(.24, .44, .28, M.ridge, x, pk + .2, 0, house);
+    k.rotation.z = x > 0 ? -.3 : .3;
+  });
+})();
+// 宝顶
+const finial = new THREE.Mesh(new THREE.SphereGeometry(.16, 12, 10), M.gold);
+finial.position.set(0, 7.95, 0); house.add(finial);
+
+/* ---------- 灯笼 ---------- */
+const lanterns = [];
+function lantern(x, y, z, parent) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(.28, 14, 12), M.lantern);
+  body.scale.y = 1.18;
+  g.add(body);
+  box(.2, .07, .2, M.woodD, 0, .36, 0, g);
+  box(.2, .07, .2, M.woodD, 0, -.36, 0, g);
+  const t = box(.03, .3, .03, M.ridge, 0, -.52, 0, g);
+  const light = new THREE.PointLight(0xff5a30, 6, 7, 2);
+  g.add(light);
+  g.position.set(x, y, z);
+  (parent || scene).add(g);
+  lanterns.push({ g, light, phase: Math.random() * 6 });
+  return g;
+}
+lantern(-2.6, 3.1, 2.9, house);
+lantern( 2.6, 3.1, 2.9, house);
+lantern(-.9, 2.9, 3.35, house);
+lantern( .9, 2.9, 3.35, house);
+
+/* ---------- 树 / 石 / 竹 ---------- */
+function pine(x, z, s) {
+  const g = new THREE.Group();
+  const tr = new THREE.Mesh(new THREE.CylinderGeometry(.12 * s, .18 * s, 1.4 * s, 8), M.trunk);
+  tr.position.y = .7 * s; tr.castShadow = true; g.add(tr);
+  for (let i = 0; i < 3; i++) {
+    const c = new THREE.Mesh(new THREE.ConeGeometry((1.3 - i * .35) * s, (1.4 - i * .2) * s, 9), M.leaf);
+    c.position.y = (1.5 + i * .95) * s; c.castShadow = true; g.add(c);
+  }
+  g.position.set(x, .2, z);
+  scene.add(g);
+}
+pine(-8.5, -3, 1.6); pine(-7.2, 3.5, 1.1); pine(8.8, -2.2, 1.45);
+pine(7.4, 4.2, .95); pine(-5.5, -8.5, 1.2); pine(6, -8, .8);
+
+// 太湖石
+function rock(x, z, s) {
+  const g = new THREE.IcosahedronGeometry(s, 1);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    p.setXYZ(i,
+      p.getX(i) * (1 + Math.sin(i * 12.9898) * .28),
+      p.getY(i) * (1 + Math.cos(i * 78.233) * .34) * 1.3,
+      p.getZ(i) * (1 + Math.sin(i * 43.758) * .28));
+  }
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, M.stone);
+  m.position.set(x, s * .9, z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+}
+rock(6.2, 1.2, .9); rock(-6.4, .8, 1.15); rock(5.2, -5.5, .6);
+
+// 竹（门前两丛）
+function bamboo(x, z) {
+  for (let i = 0; i < 6; i++) {
+    const h = 2.6 + Math.random() * 1.6;
+    const dx = (Math.random() - .5) * .8, dz = (Math.random() - .5) * .8;
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(.035, .05, h, 6),
+      new THREE.MeshStandardMaterial({ color: 0x3f6b45, roughness: .8 }));
+    st.position.set(x + dx, h / 2 + .2, z + dz);
+    st.rotation.x = (Math.random() - .5) * .12;
+    st.rotation.z = (Math.random() - .5) * .12;
+    st.castShadow = true;
+    scene.add(st);
+    const lf = new THREE.Mesh(new THREE.ConeGeometry(.3, .9, 6), M.leaf);
+    lf.position.set(x + dx, h + .25, z + dz);
+    scene.add(lf);
+  }
+}
+bamboo(3.6, 7.4); bamboo(-3.6, 7.4);
+
+/* ---------- 月 / 星 / 萤 ---------- */
+const moon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 20, 16), M.moon);
+moon.position.set(-11, 12.5, -46);
+scene.add(moon);
+const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: (function () {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const rad = g.createRadialGradient(64, 64, 8, 64, 64, 64);
+    rad.addColorStop(0, 'rgba(245,239,220,0.55)');
+    rad.addColorStop(.4, 'rgba(245,239,220,0.16)');
+    rad.addColorStop(1, 'rgba(245,239,220,0)');
+    g.fillStyle = rad; g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })(),
+  transparent: true, depthWrite: false, fog: false }));
+moonGlow.position.copy(moon.position); moonGlow.scale.set(9, 9, 1);
+scene.add(moonGlow);
+
+(function stars() {
+  const n = 520, arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const r = 60 + Math.random() * 40;
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.random() * Math.PI * .42;
+    arr[i * 3]     = Math.cos(th) * Math.sin(ph) * r;
+    arr[i * 3 + 1] = Math.abs(Math.cos(ph) * r) + 4;
+    arr[i * 3 + 2] = Math.sin(th) * Math.sin(ph) * r;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({
+    color: 0xbfd4ff, size: .34, sizeAttenuation: true, transparent: true, opacity: .85, fog: false })));
+})();
+
+const fireflies = [];
+for (let i = 0; i < 14; i++) {
+  const f = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 5),
+    new THREE.MeshBasicMaterial({ color: 0xd9ff8a }));
+  f.userData = { r: 5 + Math.random() * 7, a: Math.random() * 6.28, y: .8 + Math.random() * 2.5, sp: .12 + Math.random() * .25 };
+  scene.add(f);
+  fireflies.push(f);
+}
+
+/* ---------- 灯光 ---------- */
+scene.add(new THREE.AmbientLight(0x30394e, 1.4));
+const moonLight = new THREE.DirectionalLight(0x9db4d8, 1.1);
+moonLight.position.set(-9, 15, -30);
+moonLight.castShadow = true;
+moonLight.shadow.mapSize.set(2048, 2048);
+moonLight.shadow.camera.left = -18; moonLight.shadow.camera.right = 18;
+moonLight.shadow.camera.top = 18;  moonLight.shadow.camera.bottom = -18;
+moonLight.shadow.camera.far = 90;
+scene.add(moonLight);
+// 屋内透出的暖光
+const warmDoor = new THREE.PointLight(0xffa85c, 8, 10, 2);
+warmDoor.position.set(0, 2.2, 4.2);
+scene.add(warmDoor);
+const warmWin = new THREE.PointLight(0xffb86b, 5, 8, 2);
+warmWin.position.set(0, 5.4, 3.4);
+scene.add(warmWin);
+
+/* ---------- 轻量轨道控制器 ---------- */
+const ctrl = {
+  theta: .55, phi: 1.28, dist: 17.5,
+  tTheta: .55, tPhi: 1.28, tDist: 17.5,
+  target: new THREE.Vector3(0, 3.6, 0),
+  min: 8, max: 34,
+  idle: 0, dragging: false,
+};
+const pointers = new Map();
+let pinch0 = 0;
+
+function onDown(e) {
+  ctrl.dragging = true; ctrl.idle = 0;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    pinch0 = Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  document.getElementById('hint').classList.add('gone');
+}
+function onMove(e) {
+  if (!pointers.has(e.pointerId)) return;
+  const prev = pointers.get(e.pointerId);
+  const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinch0) ctrl.tDist = clampD(ctrl.tDist * pinch0 / d);
+  } else {
+    const k = Math.max(1, 760 / innerWidth);   // 触屏/小屏按屏宽放大系数，单指划半屏约转 90°
+    const mult = e.pointerType === 'mouse' ? 1 : 1.7 * k;
+    ctrl.tTheta -= dx * .0055 * mult;
+    ctrl.tPhi = clampP(ctrl.tPhi - dy * .0045 * mult);
+  }
+  ctrl.idle = 0;
+}
+function onUp(e) { pointers.delete(e.pointerId); if (!pointers.size) ctrl.dragging = false; }
+function clampD(v) { return Math.max(ctrl.min, Math.min(ctrl.max, v)); }
+function clampP(v) { return Math.max(.55, Math.min(1.52, v)); }
+
+renderer.domElement.addEventListener('pointerdown', onDown);
+addEventListener('pointermove', onMove);
+addEventListener('pointerup', onUp);
+addEventListener('pointercancel', onUp);
+addEventListener('wheel', e => {
+  ctrl.tDist = clampD(ctrl.tDist + e.deltaY * .012);
+  ctrl.idle = 0;
+  document.getElementById('hint').classList.add('gone');
+}, { passive: true });
+
+/* ---------- 循环 ---------- */
+const clock = new THREE.Clock();
+function tick() {
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  ctrl.idle += dt;
+  if (ctrl.idle > 4 && !ctrl.dragging) ctrl.tTheta += dt * .055;   // 空闲缓旋
+  // 阻尼
+  ctrl.theta += (ctrl.tTheta - ctrl.theta) * .08;
+  ctrl.phi   += (ctrl.tPhi   - ctrl.phi)   * .08;
+  ctrl.dist  += (ctrl.tDist  - ctrl.dist)  * .08;
+  camera.position.set(
+    ctrl.target.x + ctrl.dist * Math.sin(ctrl.phi) * Math.sin(ctrl.theta),
+    ctrl.target.y + ctrl.dist * Math.cos(ctrl.phi),
+    ctrl.target.z + ctrl.dist * Math.sin(ctrl.phi) * Math.cos(ctrl.theta));
+  camera.lookAt(ctrl.target);
+
+  // 灯笼轻晃 + 呼吸
+  lanterns.forEach(o => {
+    o.g.rotation.z = Math.sin(t * 1.1 + o.phase) * .05;
+    o.light.intensity = 5.5 + Math.sin(t * 2.3 + o.phase) * 1.2;
+  });
+  M.lantern.emissiveIntensity = 1.7 + Math.sin(t * 2.3) * .25;
+  M.window.emissiveIntensity = 1.5 + Math.sin(t * .8) * .18;
+  warmDoor.intensity = 7.5 + Math.sin(t * 1.7) * .8;
+
+  // 萤火
+  fireflies.forEach(f => {
+    const u = f.userData;
+    u.a += dt * u.sp;
+    f.position.set(Math.cos(u.a) * u.r, u.y + Math.sin(t * .9 + u.a * 3) * .4, Math.sin(u.a) * u.r);
+    f.material.color.setHSL(.22, .9, .55 + Math.sin(t * 3 + u.a * 9) * .25);
+  });
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+tick();
+})();
+</script>
+</body>
+</html>

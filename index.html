@@ -22,6 +22,9 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="陈鸿晖 · 个人主页">
+<!-- 老派社交爬虫兼容：微信 / QQ 的部分版本不读 og:image，只认这两个 -->
+<link rel="image_src" href="https://huey314.online/assets/og-image.png">
+<meta itemprop="image" content="https://huey314.online/assets/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="陈鸿晖 · 个人主页">
 <meta name="twitter:description" content="物理学出身，半导体 FIB 方案工程师，数码折腾党。折腾笔记、读书笔记与摘抄。">
@@ -238,11 +241,7 @@ footer a:hover { text-decoration: underline; }
     column-gap: 10px;
     row-gap: 10px;
   }
-  .note-entry a { text-align: center; }
-  .note-entry a:last-child {
-    grid-column: 1;
-    margin: 0;
-  }
+  .note-entry a { text-align: center; flex: 0 0 auto; }
 }
 
 /* ---------- Reveal animation ---------- */
@@ -274,6 +273,7 @@ footer a:hover { text-decoration: underline; }
       <a href="/notes/">📝 折腾笔记</a>
       <a href="/reading/">📖 读书笔记</a>
       <a href="/excerpts/">✒️ 我的摘抄</a>
+      <a href="/home/">🏠 我的家</a>
     </div>
     <div class="scroll-hint">↓ 往下看</div>
   </div>

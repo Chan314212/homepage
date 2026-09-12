@@ -51,6 +51,9 @@ def head_meta(title: str, description: str, path: str,
         f'<meta property="og:image:width" content="{OG_IMAGE_W}">',
         f'<meta property="og:image:height" content="{OG_IMAGE_H}">',
         f'<meta property="og:image:alt" content="{_e(SITE_NAME)} · 个人主页">',
+        # 老派社交爬虫兼容：微信 / QQ 的部分版本不读 og:image，只认这两个
+        f'<link rel="image_src" href="{OG_IMAGE}">',
+        f'<meta itemprop="image" content="{OG_IMAGE}">',
         '<meta name="twitter:card" content="summary_large_image">',
         f'<meta name="twitter:title" content="{_e(title)}">',
         f'<meta name="twitter:description" content="{_e(description)}">',
@@ -72,4 +75,5 @@ STATIC_PAGES = [
     ("/notes/", "0.8", "weekly"),
     ("/reading/", "0.7", "monthly"),
     ("/excerpts/", "0.5", "monthly"),
+    ("/home/", "0.6", "monthly"),
 ]
