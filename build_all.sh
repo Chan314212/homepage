@@ -9,6 +9,8 @@ echo "▶ 构建折腾笔记…"
 python3 build_notes.py
 echo "▶ 构建读书笔记…"
 python3 build_reading.py
+echo "▶ 构建摘抄…"
+python3 build_excerpts.py
 echo "▶ 生成 sitemap…"
 python3 build_sitemap.py
 

@@ -29,7 +29,7 @@
 <meta name="twitter:image" content="https://huey314.online/assets/og-image.png">
 <style>
 :root {
-  --bg: #0d1117; --bg-soft: #161b22;
+  --bg: #0d1117; --bg-soft: #161b22; --card: #1a2029;
   --text: #e6edf3; --muted: #8b949e;
   --accent: #7ee0a3; --accent-2: #58a6ff; --border: #2d333b;
 }
@@ -40,36 +40,99 @@ body {
 }
 .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
 .topbar { padding: 28px 0 8px; }
-.topbar a { color: var(--accent-2); text-decoration: none; font-size: .9rem; }
+.topbar a {
+  color: var(--accent-2); text-decoration: none; font-size: .9rem;
+}
 .topbar a:hover { text-decoration: underline; }
-main { min-height: 68vh; padding: 72px 0; }
-h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing: .04em; }
-.lead { margin-top: 14px; color: var(--muted); }
-.empty {
-  margin-top: 44px; padding: 38px 26px; text-align: center;
-  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px;
+header {
+  padding: 48px 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: ''; position: absolute; top: -80%; right: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(126,224,163,.10), transparent 60%);
+  pointer-events: none;
+}
+header h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: .04em; }
+header .meta { color: var(--muted); font-size: .88rem; margin-top: 10px; }
+header .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-size: .78rem; color: var(--muted);
+  border: 1px solid var(--border); padding: 2px 10px; border-radius: 999px;
+}
+article {
+  padding: 32px 0 64px;
+  color: var(--text);
+  font-size: 1rem;
+}
+article h2 { font-size: 1.35rem; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+article h3 { font-size: 1.15rem; margin: 26px 0 10px; }
+article h4 { font-size: 1.02rem; margin: 22px 0 8px; }
+article p { margin: 12px 0; }
+article a { color: var(--accent-2); text-decoration: none; }
+article a:hover { text-decoration: underline; }
+article ul, article ol { margin: 12px 0; padding-left: 26px; }
+article li { margin: 6px 0; }
+article blockquote {
+  margin: 16px 0; padding: 10px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-soft); border-radius: 0 8px 8px 0;
   color: var(--muted);
 }
-.empty p:first-child { color: var(--text); font-size: 1.08rem; }
-footer { border-top: 1px solid var(--border); padding: 28px 0 56px; text-align: center; color: var(--muted); font-size: .85rem; }
-footer a { color: var(--accent-2); text-decoration: none; }
+article code {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 5px; font-size: .88em;
+}
+article pre {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  padding: 16px 18px; border-radius: 10px; overflow-x: auto;
+  margin: 16px 0;
+}
+article pre code { background: none; border: none; padding: 0; font-size: .86em; line-height: 1.6; }
+article img { max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin: 12px 0; }
+article table { border-collapse: collapse; margin: 16px 0; width: 100%; font-size: .92rem; }
+article th, article td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+article th { background: var(--bg-soft); }
+article hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0 56px; text-align: center;
+  color: var(--muted); font-size: .85rem;
+}
 .filing { margin-top: 6px; }
-.filing-link { color: var(--accent-2) !important; text-decoration: none; display: inline-flex; align-items: center; vertical-align: middle; }
+.filing-link {
+  color: var(--accent-2) !important; text-decoration: none;
+  display: inline-flex; align-items: center; vertical-align: middle;
+}
 .filing-link:hover { color: var(--accent-2) !important; text-decoration: underline; }
+
+.quote-card {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 12px 12px 0; padding: 24px 26px; margin: 0 0 20px;
+}
+.quote-card blockquote { font-size: 1.06rem; line-height: 1.9; color: var(--text); }
+.quote-card .attrib { color: var(--muted); font-size: .86rem; margin-top: 14px; }
+.quote-card .attrib .date { color: var(--muted); opacity: .75; margin-left: 10px; }
+.quote-card .exc-note {
+  color: var(--muted); font-size: .86rem; margin-top: 10px;
+  padding-top: 10px; border-top: 1px dashed var(--border);
+}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="topbar"><a href="/">← 返回主页</a></div>
-  <main>
-    <h1>我的摘抄</h1>
-    <p class="lead">把遇见过的好句子留下来。</p>
-    <div class="empty">
-      <p>这里暂时空着。</p>
-      <p>以后读书、看电影，或在某个偶然的时刻遇见值得留下的话，再慢慢填进来。</p>
-    </div>
-  </main>
+  <h1 style="padding:40px 0 8px;font-size:clamp(1.8rem,5vw,2.4rem);">我的摘抄</h1>
+  <p style="color:var(--muted);font-size:.92rem;margin:10px 0 28px;">把遇见过的好句子留下来。</p>
+  <figure class="quote-card">
+<blockquote>你想拥有你从未有过的东西，那就必须去做你从未做过的事情。</blockquote>
+<div class="attrib">—— 《士兵突击》视频的评论区<span class="date">2026-09-13</span></div><div class="exc-note">印象里是《火蓝刀锋》里龙队的一句话；和《士兵突击》王团长那句「想要和得到之间，还有个做到」异曲同工。</div></figure>
 </div>
-<footer><div class="container"><p>© 2026 陈鸿晖 · <a href="/">个人主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
+<footer>
+  <div class="container"><p>© 2026 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">个人主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div>
+</footer>
 </body>
 </html>
