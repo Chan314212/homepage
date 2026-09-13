@@ -5,6 +5,7 @@
 摘抄）的 OG / Twitter Card / canonical / favicon 引用完全一致；改一处即全站生效。
 """
 import html
+from urllib.parse import quote
 
 SITE = "https://huey314.online"
 SITE_NAME = "陈鸿晖"
@@ -32,7 +33,9 @@ def head_meta(title: str, description: str, path: str,
     published   文章页发布日期 YYYY-MM-DD
     tags        文章页标签（作为 article:tag）
     """
-    url = f"{SITE}{path}"
+    # 中文文件名必须百分号编码：EdgeOne 只认编码后的路径，未编码的中文 URL 直接 404，
+    # 而爬虫（百度/搜狗）按 sitemap 里的原始中文 URL 抓取会全部落空。
+    url = f"{SITE}{quote(path, safe='/-._~')}"
     lines = [
         f'<meta name="description" content="{_e(description)}">',
         f'<link rel="canonical" href="{url}">',

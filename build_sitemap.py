@@ -6,6 +6,7 @@
 """
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 from xml.sax.saxutils import escape
 
 from build_notes import parse_frontmatter, slugify
@@ -49,7 +50,7 @@ def build_xml():
     for path, lastmod in collect_articles():
         rows.append(
             f"  <url>\n"
-            f"    <loc>{escape(SITE + path)}</loc>\n"
+            f"    <loc>{escape(SITE + quote(path, safe='/-._~'))}</loc>\n"
             f"    <lastmod>{lastmod}</lastmod>\n"
             f"    <changefreq>yearly</changefreq>\n"
             f"    <priority>0.6</priority>\n"

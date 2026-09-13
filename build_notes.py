@@ -17,6 +17,7 @@ import re
 import html
 from pathlib import Path
 from datetime import datetime
+from urllib.parse import quote
 
 import markdown
 
@@ -166,7 +167,7 @@ def build_list_page(posts):
     cards = []
     for p in posts:
         tag_html = "".join(f'<span class="tag">{html.escape(t)}</span>' for t in p["tags"])
-        cards.append(f"""<a class="note-card" href="{p['file']}">
+        cards.append(f"""<a class="note-card" href="{quote(p['file'], safe='-._~')}">
   <h3>{html.escape(p['title'])}</h3>
   <div class="meta">{p['date_display']}</div>
   <div class="summary">{html.escape(p['summary'])}</div>
