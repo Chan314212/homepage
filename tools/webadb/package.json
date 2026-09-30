@@ -1,0 +1,19 @@
+{
+  "name": "huey-webadb-tool",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "浏览器内 WebUSB ADB 工具：启动 Shizuku / 黑域",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=esm --minify --target=es2020 --outfile=../../dev/webadb/webadb.js && chmod 644 ../../dev/webadb/webadb.js"
+  },
+  "dependencies": {
+    "@yume-chan/adb": "^2.1.0",
+    "@yume-chan/adb-credential-web": "^2.1.0",
+    "@yume-chan/adb-daemon-webusb": "^2.1.0",
+    "@yume-chan/stream-extra": "^2.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

@@ -108,6 +108,16 @@ footer {
 }
 .filing-link:hover { color: var(--accent-2) !important; text-decoration: underline; }
 
+/* 同栏目切换：折腾笔记 / 读书笔记 / 我的摘抄 */
+.section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.section-nav a {
+  font-size: .88rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 16px;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.section-nav a:hover { color: var(--text); border-color: var(--accent-2); }
+.section-nav a.active { color: var(--accent); border-color: var(--accent); background: rgba(126,224,163,.08); }
+
 .quote-card {
   background: var(--bg-soft); border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
@@ -125,6 +135,7 @@ footer {
 <body>
 <div class="container">
   <div class="topbar"><a href="/">← 返回主页</a></div>
+  <nav class="section-nav"><a href="/notes/">折腾笔记</a><a href="/reading/">读书笔记</a><a href="/excerpts/" class="active">我的摘抄</a></nav>
   <h1 style="padding:40px 0 8px;font-size:clamp(1.8rem,5vw,2.4rem);">我的摘抄</h1>
   <p style="color:var(--muted);font-size:.92rem;margin:10px 0 28px;">把遇见过的好句子留下来。</p>
   <figure class="quote-card">

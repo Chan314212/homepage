@@ -3,3 +3,7 @@
 
 # Python 构建脚本缓存
 __pycache__/
+
+# 前端工具的依赖与缓存（webadb.js 打包产物已提交，依赖不必入库）
+tools/webadb/node_modules/
+tools/webadb/package-lock.json

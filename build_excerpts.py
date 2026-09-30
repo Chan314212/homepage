@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from build_notes import BASE_CSS, parse_frontmatter
-from site_meta import head_meta
+from site_meta import head_meta, section_nav
 
 ROOT = Path(__file__).resolve().parent
 POSTS_DIR = ROOT / "excerpts" / "posts"
@@ -97,6 +97,7 @@ def list_page(items):
 <body>
 <div class="container">
   <div class="topbar"><a href="/">← 返回主页</a></div>
+  {section_nav("excerpts")}
   <h1 style="padding:40px 0 8px;font-size:clamp(1.8rem,5vw,2.4rem);">我的摘抄</h1>
   <p style="color:var(--muted);font-size:.92rem;margin:10px 0 28px;">把遇见过的好句子留下来。</p>
   {body}

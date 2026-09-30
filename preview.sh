@@ -4,7 +4,7 @@
 #   ./preview.sh          # 启动预览（默认端口 8888）
 #   ./preview.sh 8890     # 指定端口
 #   ./preview.sh stop     # 停止预览
-# 浏览器打开 http://192.168.2.104:<端口> ，改文件后 F5 刷新即可
+# 浏览器打开 http://192.168.2.102:<端口> ，改文件后 F5 刷新即可
 
 PORT=${1:-8888}
 cd "$(dirname "$0")"
@@ -21,7 +21,7 @@ if [ "$1" = "stop" ]; then
 fi
 
 if [ -f .preview.pid ] && kill -0 "$(cat .preview.pid)" 2>/dev/null; then
-  echo "预览已在运行: http://192.168.2.104:$PORT"
+  echo "预览已在运行: http://192.168.2.102:$PORT"
   exit 0
 fi
 
@@ -36,7 +36,7 @@ echo $! > .preview.pid
 
 sleep 0.5
 if kill -0 "$(cat .preview.pid)" 2>/dev/null; then
-  echo "✅ 预览已启动:  http://192.168.2.104:$PORT"
+  echo "✅ 预览已启动:  http://192.168.2.102:$PORT"
   echo "   改完文件浏览器 F5 刷新即可查看"
   echo "   确认无误后 git commit && git push 上线"
   echo "   停止预览: ./preview.sh stop"

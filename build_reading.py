@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from build_notes import BASE_CSS, LIST_CSS, parse_frontmatter, render_article, slugify
-from site_meta import head_meta
+from site_meta import head_meta, section_nav
 
 ROOT = Path(__file__).resolve().parent
 POSTS_DIR = ROOT / "reading" / "posts"
@@ -74,6 +74,7 @@ def list_page(posts):
 {meta_html}
 <style>{BASE_CSS}{LIST_CSS}</style></head>
 <body><div class="container"><div class="topbar"><a href="/">← 返回主页</a></div>
+{section_nav("reading")}
 <h1 class="list-title">读书笔记</h1><p class="list-sub">记下读到某处时，心里被翻动的东西。</p>{cards_html}
 </div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
 </body></html>'''

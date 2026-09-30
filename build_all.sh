@@ -11,6 +11,8 @@ echo "▶ 构建读书笔记…"
 python3 build_reading.py
 echo "▶ 构建摘抄…"
 python3 build_excerpts.py
+echo "▶ 构建开发相关（工具页 JS 需先 npm run build）…"
+python3 build_dev.py
 echo "▶ 生成 sitemap…"
 python3 build_sitemap.py
 

@@ -113,6 +113,16 @@ footer {
   display: inline-flex; align-items: center; vertical-align: middle;
 }
 .filing-link:hover { color: var(--accent-2) !important; text-decoration: underline; }
+
+/* 同栏目切换：折腾笔记 / 读书笔记 / 我的摘抄 */
+.section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.section-nav a {
+  font-size: .88rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 16px;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.section-nav a:hover { color: var(--text); border-color: var(--accent-2); }
+.section-nav a.active { color: var(--accent); border-color: var(--accent); background: rgba(126,224,163,.08); }
 </style>
 </head>
 <body>

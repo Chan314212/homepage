@@ -14,7 +14,7 @@ OG_IMAGE_W, OG_IMAGE_H = 1200, 630
 THEME_COLOR = "#0d1117"
 
 HOME_DESC = ("陈鸿晖的个人主页：物理学出身，在南京做半导体 FIB 切片方案工程师。"
-             "这里记录折腾笔记、读书笔记与摘抄——刷机、黑苹果、NAS 自托管、骑行与阅读。")
+             "这里记录折腾笔记、读书笔记与摘抄——刷机、黑苹果、NAS 自托管、骑行与阅读，也放能直接用的在线小工具。")
 
 
 def _e(s: str) -> str:
@@ -69,6 +69,18 @@ def head_meta(title: str, description: str, path: str,
     return "\n".join(lines)
 
 
+def section_nav(current: str) -> str:
+    """笔记类栏目之间的切换条。current: notes / reading / excerpts。"""
+    items = [("notes", "/notes/", "折腾笔记"),
+             ("reading", "/reading/", "读书笔记"),
+             ("excerpts", "/excerpts/", "我的摘抄")]
+    links = []
+    for key, href, label in items:
+        cls = ' class="active"' if key == current else ""
+        links.append(f'<a href="{href}"{cls}>{label}</a>')
+    return '<nav class="section-nav">' + "".join(links) + "</nav>"
+
+
 # ---------------------------------------------------------------------------
 # 站点地图
 # ---------------------------------------------------------------------------
@@ -79,4 +91,6 @@ STATIC_PAGES = [
     ("/reading/", "0.7", "monthly"),
     ("/excerpts/", "0.5", "monthly"),
     ("/home/", "0.6", "monthly"),
+    ("/dev/", "0.6", "monthly"),
+    ("/dev/webadb/", "0.5", "monthly"),
 ]

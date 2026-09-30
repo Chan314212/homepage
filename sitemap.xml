@@ -2,33 +2,45 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://huey314.online/</loc>
-    <lastmod>2026-09-16</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://huey314.online/notes/</loc>
-    <lastmod>2026-09-16</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://huey314.online/reading/</loc>
-    <lastmod>2026-09-16</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://huey314.online/excerpts/</loc>
-    <lastmod>2026-09-16</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://huey314.online/home/</loc>
-    <lastmod>2026-09-16</lastmod>
+    <lastmod>2026-10-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://huey314.online/dev/</loc>
+    <lastmod>2026-10-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://huey314.online/dev/webadb/</loc>
+    <lastmod>2026-10-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://huey314.online/notes/AI-Agent-%E8%B0%83%E7%94%A8%E6%89%8B%E6%9C%BA%E7%AB%AF%E4%BE%A7%E8%83%BD%E5%8A%9B%E7%9A%84%E6%96%B9%E6%A1%88%E6%8E%A2%E7%B4%A2.html</loc>

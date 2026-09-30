@@ -105,6 +105,16 @@ footer {
 }
 .filing-link:hover { color: var(--accent-2) !important; text-decoration: underline; }
 
+/* 同栏目切换：折腾笔记 / 读书笔记 / 我的摘抄 */
+.section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.section-nav a {
+  font-size: .88rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 16px;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.section-nav a:hover { color: var(--text); border-color: var(--accent-2); }
+.section-nav a.active { color: var(--accent); border-color: var(--accent); background: rgba(126,224,163,.08); }
+
 .list-title { padding: 40px 0 8px; font-size: clamp(1.8rem, 5vw, 2.4rem); }
 .list-sub { color: var(--muted); font-size: .92rem; margin: 10px 0 28px; }
 .note-card {
@@ -121,6 +131,7 @@ footer {
 .empty { color: var(--muted); padding: 40px 0; }
 </style></head>
 <body><div class="container"><div class="topbar"><a href="/">← 返回主页</a></div>
+<nav class="section-nav"><a href="/notes/">折腾笔记</a><a href="/reading/" class="active">读书笔记</a><a href="/excerpts/">我的摘抄</a></nav>
 <h1 class="list-title">读书笔记</h1><p class="list-sub">记下读到某处时，心里被翻动的东西。</p><a class="note-card" href="%E4%B8%80%E5%9C%B0%E9%B8%A1%E6%AF%9B.html">
 <h3>一地鸡毛</h3><div class="meta">2026-08-18</div>
 <div class="summary">小人物被琐碎日子包围之后，仍然要在“比上不足、比下有余”之间寻找自己的位置。</div><div class="tags"><span class="tag">日常生活</span><span class="tag">阶层</span><span class="tag">知足</span><span class="tag">刘震云</span></div></a>

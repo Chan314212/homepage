@@ -21,7 +21,7 @@ from urllib.parse import quote
 
 import markdown
 
-from site_meta import head_meta
+from site_meta import head_meta, section_nav
 
 ROOT = Path(__file__).resolve().parent
 POSTS_DIR = ROOT / "notes" / "posts"
@@ -111,6 +111,16 @@ footer {
   display: inline-flex; align-items: center; vertical-align: middle;
 }
 .filing-link:hover { color: var(--accent-2) !important; text-decoration: underline; }
+
+/* 同栏目切换：折腾笔记 / 读书笔记 / 我的摘抄 */
+.section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.section-nav a {
+  font-size: .88rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 16px;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.section-nav a:hover { color: var(--text); border-color: var(--accent-2); }
+.section-nav a.active { color: var(--accent); border-color: var(--accent); background: rgba(126,224,163,.08); }
 """
 
 # 列表页卡片样式
@@ -186,6 +196,7 @@ def build_list_page(posts):
 <body>
 <div class="container">
   <div class="topbar"><a href="/">← 返回主页</a></div>
+  {section_nav("notes")}
   <h1 class="list-title">折腾笔记</h1>
   <p class="list-sub">数码折腾、黑苹果、Linux、NAS 自托管……把搞明白的东西写下来，对抗遗忘。</p>
   {cards_html}
