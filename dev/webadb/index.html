@@ -261,7 +261,7 @@ details code { background: var(--bg-soft); border: 1px solid var(--border); padd
       <li><strong>提示设备被占用</strong>：<code>adb kill-server</code>，关掉 Android Studio、投屏、手机助手类软件，再重连。</li>
       <li><strong>Windows 报 transfer error</strong>：用 Zadig 给手机的 ADB 接口装 WinUSB 驱动（装了厂商驱动的电脑常见）。</li>
       <li><strong>Shizuku 没启动</strong>：把 Shizuku 更新到 v13.6 以上，或先在手机上打开 Shizuku 应用再重试。</li>
-      <li><strong>黑域没启动</strong>：先在手机上打开黑域，进「启动」页，然后把界面显示的命令粘到下面的手动命令框里执行。</li>
+      <li><strong>黑域没启动</strong>：先在手机上打开黑域，进「启动」页，把界面显示的命令粘到下面的手动命令框里执行。新版黑域（黑阈 3.2+）还能直接用 Shizuku 启动——上面 Shizuku 起来之后，在黑域里按提示操作即可。</li>
       <li>确认服务是否起来了，手动执行：<code>ps -A -o NAME | grep -E "shizuku|brevent"</code>。</li>
     </ul>
   </details>
@@ -271,7 +271,7 @@ details code { background: var(--bg-soft); border: 1px solid var(--border); padd
     <ul>
       <li>Shizuku（v13.6+）：<code>pm path moe.shizuku.privileged.api</code> 拿到安装目录，执行其中的 <code>libshizuku.so</code>。</li>
       <li>Shizuku（v11.2+ 旧方式）：<code>sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh</code>。</li>
-      <li>黑域：<code>sh /storage/emulated/0/Android/data/me.piebridge.brevent/brevent.sh</code>（找不到脚本时会自动全目录搜一遍 .sh）。</li>
+      <li>黑域：<code>sh /storage/emulated/0/Android/data/me.piebridge.brevent/brevent.sh</code>，不同版本脚本位置不一样，找不到时会自动把该应用的存储目录搜一遍 <code>.sh</code>；都找不到就用黑域界面里给出的命令。</li>
       <li>底层用的是 <a href="https://github.com/yume-chan/ya-webadb" target="_blank" rel="noopener">Tango ADB（ya-webadb）</a>，纯浏览器实现的 ADB 协议，MIT 协议。</li>
     </ul>
   </details>
