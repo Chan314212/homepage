@@ -202,8 +202,13 @@ async function showDeviceInfo() {
 
 async function packagePath(pkg) {
   const { stdout } = await run(`pm path ${pkg}`, { silent: true });
-  const line = (stdout || "").split("\n").map((s) => s.trim()).find((s) => s.startsWith("package:"));
-  return line ? line.slice("package:".length) : "";
+  const paths = (stdout || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s.startsWith("package:"))
+    .map((s) => s.slice("package:".length));
+  // 多行（split apk）时优先 base.apk：app_process 要从它里面加载完整的服务类
+  return paths.find((p) => /base\.apk$/.test(p)) || paths[0] || "";
 }
 
 async function detect() {
@@ -301,14 +306,36 @@ async function startBrevent() {
   }
   log("黑域已安装：" + apk);
 
-  // 候选路径 → find 兜底，兼容各版本脚本位置
-  const candidates = [
+  // 黑域官方激活方式（brevent.sh 首页给的就是这一条）：
+  //   用 app_process 加载 apk 里的服务类，bootstrap 生成 /data/local/tmp/brevent.sh，
+  //   再执行那个脚本把服务常驻起来。
+  // 别再找「App 导出到存储目录的 brevent.sh」——现行版本不走那条路（老教程的遗留说法）。
+  const bootstrap = `app_process /system/bin me.piebridge.brevent.server.BreventServer bootstrap`;
+  const session = [
+    `export CLASSPATH='${apk}'`,
+    `if command -v timeout >/dev/null 2>&1; then timeout 30 ${bootstrap}; else ${bootstrap}; fi`,
+    `ls -l /data/local/tmp/brevent.sh 2>/dev/null || echo "没生成 /data/local/tmp/brevent.sh"`,
+    `if [ -f /data/local/tmp/brevent.sh ]; then /system/bin/sh /data/local/tmp/brevent.sh; fi`,
+  ].join("; ");
+  await run(session);
+
+  const { stdout: ps } = await run(
+    `(ps -A -o NAME 2>/dev/null || ps -A) | grep -i brevent`,
+    { silent: true }
+  );
+  if (/brevent/i.test(ps)) {
+    log("黑域服务已启动。现在可以拔线了（重启手机后要再来一次）。", "succ");
+    return;
+  }
+
+  // 兜底：3.x 及更早的黑域用的是 App 存储目录里的 brevent.sh
+  log("没看到 brevent 进程，退回去试老版本的脚本路径。", "warn");
+  const legacy = [
     `${BREVENT_DIR}/brevent.sh`,
     "/sdcard/Android/data/me.piebridge.brevent/brevent.sh",
-    `${BREVENT_DIR}/files/brevent.sh`,
   ];
   let script = "";
-  for (const path of candidates) {
+  for (const path of legacy) {
     const { stdout } = await run(`ls "${path}" 2>/dev/null`, { silent: true });
     if (stdout.trim()) {
       script = path;
@@ -316,28 +343,18 @@ async function startBrevent() {
     }
   }
   if (!script) {
-    const { stdout } = await run(
-      `find ${BREVENT_DIR} /sdcard/Android/data/me.piebridge.brevent -name "*.sh" 2>/dev/null`,
-      { silent: true }
-    );
-    script = (stdout || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
-  }
-
-  if (!script) {
-    log("没找到黑域的启动脚本。", "error");
-    log("请先在手机上打开黑域，进「启动」页面，让应用把启动脚本写到存储里，然后再点一次这个按钮。", "warn");
-    log("也可以把黑域界面上显示的命令原样粘到下面的手动命令框执行。", "warn");
+    log("两条路都没走通。把上面的日志发我，我看着输出接着查。", "error");
+    log("常见原因：黑域版本过旧（建议升到现行 4.x）、系统限制了 app_process 加载第三方 apk、或存储权限异常。", "warn");
     return;
   }
-
-  log("找到启动脚本：" + script);
-  await run(`sh "${script}"`);
-  const { stdout: ps } = await run(`(ps -A -o NAME 2>/dev/null || ps -A) | grep -i brevent`, { silent: true });
-  if (/brevent/i.test(ps)) {
-    log("黑域服务已启动。现在可以拔线了。", "succ");
-  } else {
-    log("脚本执行完了，但没看到 brevent 进程，检查上面输出。", "warn");
-  }
+  log("找到老版脚本：" + script);
+  await run(`CLASSPATH='${apk}' sh "${script}"`);
+  const { stdout: ps2 } = await run(
+    `(ps -A -o NAME 2>/dev/null || ps -A) | grep -i brevent`,
+    { silent: true }
+  );
+  if (/brevent/i.test(ps2)) log("黑域服务已启动（走的老版路径）。", "succ");
+  else log("老版脚本跑完也没有 brevent 进程，把日志发我。", "error");
 }
 
 /* ------------------------------------------------------------ 一键启动 */

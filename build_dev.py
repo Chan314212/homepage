@@ -206,7 +206,7 @@ def build_webadb_page() -> str:
       <li>手机打开「开发者选项 → USB 调试」，插上数据线，手机上弹「允许 USB 调试」时勾上「始终允许」。</li>
       <li>电脑上的 <code>adb server</code> 或 Android Studio 会独占手机，WebUSB 就抢不到了。先执行 <code>adb kill-server</code> 或关掉相关软件。</li>
       <li>Windows 需要把手机的 ADB 接口换成 WinUSB 驱动（用 Zadig），否则浏览器读不到设备；macOS / Linux 免驱动。</li>
-      <li>Shizuku 和黑域都得先在手机上装好、并至少打开过一次（让应用把启动文件写到存储里）。</li>
+      <li>手机上装好 <strong>Shizuku</strong> 和 <strong>黑域</strong>。Shizuku 建议先打开过一次；黑域不用（激活走的是 <code>app_process</code>，不需要它导出任何脚本）。</li>
       <li>两种方式启动的服务都是临时的，<strong>手机重启后要重新启动一次</strong>。</li>
     </ol>
   </details>
@@ -218,7 +218,7 @@ def build_webadb_page() -> str:
       <li><strong>提示设备被占用</strong>：<code>adb kill-server</code>，关掉 Android Studio、投屏、手机助手类软件，再重连。</li>
       <li><strong>Windows 报 transfer error</strong>：用 Zadig 给手机的 ADB 接口装 WinUSB 驱动（装了厂商驱动的电脑常见）。</li>
       <li><strong>Shizuku 没启动</strong>：把 Shizuku 更新到 v13.6 以上，或先在手机上打开 Shizuku 应用再重试。</li>
-      <li><strong>黑域没启动</strong>：先在手机上打开黑域，进「启动」页，把界面显示的命令粘到下面的手动命令框里执行。新版黑域（黑阈 3.2+）还能直接用 Shizuku 启动——上面 Shizuku 起来之后，在黑域里按提示操作即可。</li>
+      <li><strong>黑域没启动</strong>：本工具按黑域官方方式激活（<code>app_process</code> 加载 apk 里的服务类）。如果日志里没有 brevent 进程，常见原因是黑域版本过旧——升到现行 4.x 再试。另一个办法：Shizuku 起来之后，直接在黑域应用内按提示用 Shizuku 启动，不用数据线。</li>
       <li>确认服务是否起来了，手动执行：<code>ps -A -o NAME | grep -E "shizuku|brevent"</code>。</li>
     </ul>
   </details>
@@ -228,7 +228,7 @@ def build_webadb_page() -> str:
     <ul>
       <li>Shizuku（v13.6+）：<code>pm path moe.shizuku.privileged.api</code> 拿到安装目录，执行其中的 <code>libshizuku.so</code>。</li>
       <li>Shizuku（v11.2+ 旧方式）：<code>sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh</code>。</li>
-      <li>黑域：<code>sh /storage/emulated/0/Android/data/me.piebridge.brevent/brevent.sh</code>，不同版本脚本位置不一样，找不到时会自动把该应用的存储目录搜一遍 <code>.sh</code>；都找不到就用黑域界面里给出的命令。</li>
+      <li>黑域（官方方式，见 <a href="https://brevent.sh/" target="_blank" rel="noopener">brevent.sh</a>）：把 <code>pm path me.piebridge.brevent</code> 给出的 <code>base.apk</code> 设为 <code>CLASSPATH</code>，执行 <code>app_process /system/bin me.piebridge.brevent.server.BreventServer bootstrap</code>，它生成并执行 <code>/data/local/tmp/brevent.sh</code> 把服务常驻起来。老版本（3.x）才用存储目录里的 <code>brevent.sh</code>，找不到时工具会自动退回那条路。</li>
       <li>底层用的是 <a href="https://github.com/yume-chan/ya-webadb" target="_blank" rel="noopener">Tango ADB（ya-webadb）</a>，纯浏览器实现的 ADB 协议，MIT 协议。</li>
     </ul>
   </details>
