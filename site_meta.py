@@ -70,9 +70,10 @@ def head_meta(title: str, description: str, path: str,
 
 
 def section_nav(current: str) -> str:
-    """笔记类栏目之间的切换条。current: notes / reading / excerpts。"""
+    """笔记类栏目之间的切换条。current: notes / reading / essays / excerpts。"""
     items = [("notes", "/notes/", "折腾笔记"),
              ("reading", "/reading/", "读书笔记"),
+             ("essays", "/essays/", "随笔"),
              ("excerpts", "/excerpts/", "我的摘抄")]
     links = []
     for key, href, label in items:
@@ -89,6 +90,7 @@ STATIC_PAGES = [
     ("/", "1.0", "weekly"),
     ("/notes/", "0.8", "weekly"),
     ("/reading/", "0.7", "monthly"),
+    ("/essays/", "0.6", "monthly"),
     ("/excerpts/", "0.5", "monthly"),
     ("/home/", "0.6", "monthly"),
     ("/dev/", "0.6", "monthly"),

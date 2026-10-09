@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""构建随笔栏目：essays/posts/*.md -> essays/*.html。
+
+随笔与「折腾笔记/读书笔记」同属个人写作，但不依赖任何外部对象（书、设备），
+是纯粹的自我记述；因此单独成栏，靠 section_nav 的切换条与笔记类栏目互通。
+"""
+import html
+from datetime import datetime
+from pathlib import Path
+from urllib.parse import quote
+
+from build_notes import BASE_CSS, LIST_CSS, parse_frontmatter, render_article, slugify
+from site_meta import head_meta, section_nav
+
+ROOT = Path(__file__).resolve().parent
+POSTS_DIR = ROOT / "essays" / "posts"
+OUT_DIR = ROOT / "essays"
+
+ESSAYS_DESC = ("陈鸿晖的随笔：从配一副眼镜、骑一段车这样的小事写起，"
+               "记下生活里那些忽然想明白、或者忽然想不明白的地方。")
+
+
+def load_posts():
+    posts = []
+    for md_file in sorted(POSTS_DIR.glob("*.md")):
+        meta, body = parse_frontmatter(md_file.read_text(encoding="utf-8"))
+        title = meta.get("title", md_file.stem)
+        date_raw = meta.get("date", "")
+        try:
+            date_display = datetime.strptime(date_raw, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            date_display = date_raw
+        posts.append({
+            "title": title,
+            "date": date_raw,
+            "date_display": date_display,
+            "tags": meta.get("tags", []),
+            "summary": meta.get("summary", ""),
+            "body_html": render_article(body),
+            "file": f"{slugify(title)}.html",
+        })
+    return sorted(posts, key=lambda p: p["date"], reverse=True)
+
+
+def article_page(post):
+    tags = "".join(f'<span class="tag">{html.escape(t)}</span>' for t in post["tags"])
+    page_title = f"{post['title']} · 陈鸿晖的随笔"
+    meta_html = head_meta(page_title, post["summary"], f"/essays/{post['file']}",
+                          og_type="article", published=post["date"],
+                          tags=post["tags"])
+    return f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{html.escape(page_title)}</title>
+{meta_html}
+<style>{BASE_CSS}</style></head>
+<body><div class="container">
+<div class="topbar"><a href="index.html">← 返回随笔</a> · <a href="/">主页</a></div>
+<header><h1>{html.escape(post["title"])}</h1><div class="meta">{post["date_display"]}</div><div class="tags">{tags}</div></header>
+<article>{post["body_html"]}</article>
+</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">个人主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
+</body></html>'''
+
+
+def list_page(posts):
+    cards = []
+    for p in posts:
+        tags = "".join(f'<span class="tag">{html.escape(t)}</span>' for t in p["tags"])
+        cards.append(f'''<a class="note-card" href="{quote(p['file'], safe='-._~')}">
+<h3>{html.escape(p["title"])}</h3><div class="meta">{p["date_display"]}</div>
+<div class="summary">{html.escape(p["summary"])}</div><div class="tags">{tags}</div></a>''')
+    cards_html = "\n".join(cards) or '<p class="empty">还没有随笔，第一篇在路上。</p>'
+    meta_html = head_meta("随笔 · 陈鸿晖", ESSAYS_DESC, "/essays/")
+    return f'''<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>随笔 · 陈鸿晖</title>
+{meta_html}
+<style>{BASE_CSS}{LIST_CSS}</style></head>
+<body><div class="container"><div class="topbar"><a href="/">← 返回主页</a></div>
+{section_nav("essays")}
+<h1 class="list-title">随笔</h1><p class="list-sub">不为什么写的那些：一件事过去之后，还想多留一会儿的部分。</p>{cards_html}
+</div><footer><div class="container"><p>© {datetime.now().year} 陈鸿晖 · <a href="/" style="color:var(--accent-2);text-decoration:none;">主页</a></p><p class="filing"><a class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026058485号-1</a> · <a class="filing-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=32011402012693" target="_blank" rel="noopener">苏公网安备32011402012693号</a></p></div></footer>
+</body></html>'''
+
+
+def main():
+    POSTS_DIR.mkdir(parents=True, exist_ok=True)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    posts = load_posts()
+    for old in OUT_DIR.glob("*.html"):
+        old.unlink()
+    for post in posts:
+        (OUT_DIR / post["file"]).write_text(article_page(post), encoding="utf-8")
+        print(f'  ✓ {post["file"]}  ({post["title"]})')
+    (OUT_DIR / "index.html").write_text(list_page(posts), encoding="utf-8")
+    print(f"  ✓ essays/index.html  ({len(posts)} 篇随笔)")
+
+
+if __name__ == "__main__":
+    main()

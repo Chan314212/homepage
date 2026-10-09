@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent
 SECTIONS = [
     ("notes", ROOT / "notes" / "posts"),
     ("reading", ROOT / "reading" / "posts"),
+    ("essays", ROOT / "essays" / "posts"),
 ]
 
 
